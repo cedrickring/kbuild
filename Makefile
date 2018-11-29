@@ -1,7 +1,6 @@
 all: deps lint fmt vet build
 
 deps:
-	go get
 	go get github.com/golang/lint/golint
 
 build:
