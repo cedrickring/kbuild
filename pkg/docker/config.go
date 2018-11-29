@@ -1,8 +1,8 @@
 package docker
 
 import (
-	"github.com/cedrickring/kaniko-build/pkg/utils"
-	"github.com/cedrickring/kaniko-build/pkg/utils/constants"
+	"github.com/cedrickring/kbuild/pkg/utils"
+	"github.com/cedrickring/kbuild/pkg/utils/constants"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

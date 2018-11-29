@@ -2,7 +2,7 @@ package kaniko
 
 import (
 	"fmt"
-	"github.com/cedrickring/kaniko-build/pkg/utils/constants"
+	"github.com/cedrickring/kbuild/pkg/utils/constants"
 	"github.com/google/go-containerregistry/pkg/name"
 	"k8s.io/api/core/v1"
 	"strings"

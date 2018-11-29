@@ -2,7 +2,7 @@ package utils
 
 import (
 	"context"
-	"github.com/cedrickring/kaniko-build/pkg/log"
+	"github.com/cedrickring/kbuild/pkg/log"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"

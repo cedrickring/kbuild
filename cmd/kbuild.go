@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/cedrickring/kaniko-build/pkg/kaniko"
-	"github.com/cedrickring/kaniko-build/pkg/log"
+	"github.com/cedrickring/kbuild/pkg/kaniko"
+	"github.com/cedrickring/kbuild/pkg/log"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -68,7 +68,7 @@ func run(_ *cobra.Command, _ []string) {
 func checkForDockerfile() error {
 	df := strings.Replace(dockerfile, ".", "Dockerfile", -1)
 	if _, err := os.Stat(filepath.Join(workingDir, df)); err != nil {
-		return errors.Errorf("Can't find Dockerfile in the working directory. (%s)", workingDir + "/" + df)
+		return errors.Errorf("Can't find Dockerfile in the working directory. (%s)", workingDir+"/"+df)
 	}
 	return nil
 }

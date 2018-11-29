@@ -2,9 +2,9 @@ package kaniko
 
 import (
 	"fmt"
-	"github.com/cedrickring/kaniko-build/pkg/docker"
-	"github.com/cedrickring/kaniko-build/pkg/log"
-	"github.com/cedrickring/kaniko-build/pkg/utils"
+	"github.com/cedrickring/kbuild/pkg/docker"
+	"github.com/cedrickring/kbuild/pkg/log"
+	"github.com/cedrickring/kbuild/pkg/utils"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
