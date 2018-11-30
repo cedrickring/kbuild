@@ -78,7 +78,11 @@ func run(_ *cobra.Command, _ []string) {
 		Cache:          useCache,
 		CacheRepo:      cacheRepo,
 	}
-	log.Err(b.StartBuild())
+	err = b.StartBuild()
+	if err != nil {
+		log.Err(err)
+		os.Exit(1)
+	}
 }
 
 func checkForDockerfile() error {

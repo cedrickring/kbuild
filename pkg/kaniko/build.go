@@ -87,9 +87,14 @@ func (b Build) StartBuild() error {
 		return errors.Wrap(err, "waiting for kaniko pod to complete")
 	}
 
-	log.Info("Build finished.")
 	cancel() //stop streaming logs
 
+	podStatus, err := pods.Get(pod.Name, metav1.GetOptions{})
+	if err == nil && podStatus.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" { //build container exited with a non 0 code
+		return errors.New("Build failed.")
+	}
+
+	log.Info("Build succeeded.")
 	return nil
 }
 
