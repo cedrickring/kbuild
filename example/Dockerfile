@@ -1,5 +1,5 @@
 FROM golang:alpine as build-env
-COPY main.go /src/
+COPY . /src/
 RUN cd /src && go build -o helloworld main.go
 
 FROM alpine

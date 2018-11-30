@@ -19,6 +19,8 @@ package docker
 import (
 	"archive/tar"
 	"compress/gzip"
+	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/fileutils"
 	"github.com/pkg/errors"
 	"io"
 	"os"
@@ -30,6 +32,11 @@ import (
 func GetContextFromDir(dir string, w io.Writer) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		return errors.Wrap(err, "get context from dir")
+	}
+
+	pm, err := excludeMatcher(dir)
+	if err != nil {
+		return errors.Wrap(err, "getting exclude pattern matcher")
 	}
 
 	gzw := gzip.NewWriter(w)
@@ -47,21 +54,21 @@ func GetContextFromDir(dir string, w io.Writer) error {
 			return nil //do not include the original path in the tar.gz
 		}
 
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return nil
+		}
+
+		if ret, err := shouldSkipPath(pm, info.IsDir(), relPath); ret {
+			return err
+		}
+
 		header, err := tar.FileInfoHeader(info, info.Name())
 		if err != nil {
 			return errors.Wrap(err, "creating tar file header")
 		}
 
-		//make file path relative inside tar
-		if dir == "." {
-			header.Name = path
-		} else {
-			header.Name = strings.Replace(path, dir, "", -1)
-			if header.Name[0] == '\\' || header.Name[0] == '/' { //remove leading slashes
-				header.Name = header.Name[1:]
-			}
-		}
-		header.Name = strings.Replace(header.Name, "\\", "/", -1) //replace all backslashes with forward slashes
+		header.Name = strings.Replace(relPath, "\\", "/", -1) //replace all backslashes with forward slashes
 
 		if err := tw.WriteHeader(header); err != nil {
 			return errors.Wrap(err, "write header to tar")
@@ -84,4 +91,60 @@ func GetContextFromDir(dir string, w io.Writer) error {
 
 		return nil
 	})
+}
+
+func shouldSkipPath(pm *fileutils.PatternMatcher, isDir bool, relPath string) (bool, error) {
+	skip, err := pm.Matches(relPath)
+	if err != nil {
+		return true, errors.Wrap(err, "matching exclude pattern")
+	}
+
+	if skip {
+		if !isDir {
+			return true, nil
+		}
+
+		if !pm.Exclusions() {
+			return true, filepath.SkipDir
+		}
+
+		dirSlash := relPath + string(filepath.Separator)
+
+		for _, pat := range pm.Patterns() {
+			if !pat.Exclusion() {
+				continue
+			}
+			if strings.HasPrefix(pat.String()+string(filepath.Separator), dirSlash) {
+				// found a match - so can't skip this dir
+				return true, nil
+			}
+		}
+
+		// No matching exclusion dir so just skip dir
+		return true, filepath.SkipDir
+	}
+
+	return false, nil
+}
+
+func excludeMatcher(dir string) (*fileutils.PatternMatcher, error) {
+	var excludes []string
+
+	f, err := os.Open(filepath.Join(dir, ".dockerignore"))
+	switch {
+	case os.IsNotExist(err):
+		return fileutils.NewPatternMatcher(excludes)
+	case err != nil:
+		return nil, err
+	}
+	defer f.Close()
+
+	excludes, err = dockerignore.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	excludes = append(excludes, ".dockerignore")
+
+	return fileutils.NewPatternMatcher(excludes)
 }
