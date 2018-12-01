@@ -48,14 +48,14 @@ func (b Build) getKanikoPod() *v1.Pod {
 					VolumeMounts: []v1.VolumeMount{
 						{
 							Name:      "build-context",
-							MountPath: "/kaniko/build-context",
+							MountPath: constants.KanikoBuildContextPath,
 						},
 					},
 				},
 			},
 			Containers: []v1.Container{
 				{
-					Name:  "kaniko-build",
+					Name:  constants.KanikoContainerName,
 					Image: "gcr.io/kaniko-project/executor",
 					Args: []string{
 						"--dockerfile=" + dockerfile,
@@ -69,7 +69,7 @@ func (b Build) getKanikoPod() *v1.Pod {
 						},
 						{
 							Name:      "build-context",
-							MountPath: "/kaniko/build-context",
+							MountPath: constants.KanikoBuildContextPath,
 						},
 					},
 				},

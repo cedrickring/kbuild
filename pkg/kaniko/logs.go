@@ -19,6 +19,7 @@ package kaniko
 import (
 	"bufio"
 	"fmt"
+	"github.com/cedrickring/kbuild/pkg/utils/constants"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"sync"
@@ -40,7 +41,7 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 		for atomic.LoadInt32(&retry) == 1 {
 			readCloser, err := pods.GetLogs(podName, &v1.PodLogOptions{
 				Follow:    true,
-				Container: "kaniko-build",
+				Container: constants.KanikoContainerName,
 			}).Stream()
 
 			if err != nil {

@@ -21,6 +21,7 @@ import (
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/log"
 	"github.com/cedrickring/kbuild/pkg/utils"
+	"github.com/cedrickring/kbuild/pkg/utils/constants"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -151,7 +152,7 @@ func (b Build) copyTarIntoPod(clientset *kubernetes.Clientset, generatedPod *v1.
 	podTarPath := fmt.Sprintf("/tmp/%s", filepath.Base(b.tarPath))
 	localTarPath := b.tarPath
 	if runtime.GOOS == "windows" {
-		localTarPath = localTarPath[2:]
+		localTarPath = localTarPath[2:] //remove drive letter from path
 	}
 	initContainerName := generatedPod.Spec.InitContainers[0].Name
 
@@ -164,7 +165,7 @@ func (b Build) copyTarIntoPod(clientset *kubernetes.Clientset, generatedPod *v1.
 	}
 
 	//kubectl exec <generatedPod> -c <initcontainer> [-n <namespace>] -- tar -zxf /tmp/<tar> -C /kaniko/build-context
-	tar := exec.Command("kubectl", "exec", generatedPod.Name, "-c", initContainerName, "--", "tar", "-zxf", podTarPath, "-C", "/kaniko/build-context")
+	tar := exec.Command("kubectl", "exec", generatedPod.Name, "-c", initContainerName, "--", "tar", "-zxf", podTarPath, "-C", constants.KanikoBuildContextPath)
 	if err := tar.Run(); err != nil {
 		return errors.Wrap(err, "extracting tar in init container")
 	}

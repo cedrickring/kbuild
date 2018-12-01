@@ -49,7 +49,7 @@ func Error(i ...interface{}) {
 	fmt.Println(i...)
 }
 
-//Err prints an error it's not nil (never panics)
+//Err prints an error if it's not nil (never panics)
 func Err(err error) {
 	if err != nil {
 		fmt.Print(a.Red("[ERROR] "))
