@@ -18,13 +18,13 @@ package docker
 
 import (
 	"fmt"
-	"github.com/cedrickring/kbuild/pkg/log"
 	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -47,7 +47,11 @@ func GetFilePaths(workDir, dockerfile string) ([]string, error) {
 	for _, node := range children {
 		switch node.Value {
 		case command.Copy, command.Add:
-			paths = append(paths, parseCopyOrAdd(workDir, node, envVars)...)
+			parsed, err := parseCopyOrAdd(workDir, node, envVars)
+			if err != nil {
+				return nil, err
+			}
+			paths = append(paths, parsed...)
 		case command.Env:
 			envVars[node.Next.Value] = node.Next.Next.Value
 		}
@@ -58,39 +62,37 @@ func GetFilePaths(workDir, dockerfile string) ([]string, error) {
 	return paths, nil
 }
 
-func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) []string {
+func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) ([]string, error) {
 	var paths []string
 
 	for _, flag := range node.Flags {
 		if strings.HasPrefix(flag, "--from") { //ignore paths copied from another build step
-			return paths
+			return paths, nil
 		}
 	}
 
 	lex := shell.NewLex(rune('\\'))
-
-Node:
 	for node = node.Next; node.Next != nil; node = node.Next {
+		if match, err := regexp.MatchString("^https?://(.*)", node.Value); err != nil && match {
+			continue //skip external dependencies
+		}
 		abs := strings.Replace(filepath.Join(wd, node.Value), "\\", "/", -1) //need forward-slashes in windows so they don't get escaped by lex
 
 		expanded, err := lex.ProcessWordWithMap(abs, envVars)
 		if err != nil {
-			log.Err(err)
-			continue
+			return nil, err
 		}
 
 		matches, err := filepath.Glob(expanded)
 		if err != nil {
-			log.Err(err)
-			continue
+			return nil, err
 		}
 
 		var relPaths []string
 		for _, match := range matches {
 			rel, err := filepath.Rel(wd, match)
 			if err != nil || strings.HasPrefix(rel, "..") {
-				log.Err(err)
-				continue Node
+				return nil, errors.Errorf("path %s is not inside the build context", match)
 			}
 
 			relPaths = append(relPaths, rel)
@@ -99,5 +101,5 @@ Node:
 		paths = append(paths, relPaths...)
 	}
 
-	return paths
+	return paths, nil
 }
