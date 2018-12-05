@@ -79,7 +79,11 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	err = b.StartBuild()
 	if err != nil {
-		log.Err(err)
+		if err == kaniko.ErrorBuildFailed {
+			log.Error("Build failed.")
+		} else {
+			log.Err(err)
+		}
 		os.Exit(1)
 	}
 }

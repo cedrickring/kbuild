@@ -18,6 +18,7 @@ package docker
 
 import (
 	"fmt"
+	"github.com/cedrickring/kbuild/pkg/log"
 	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -28,6 +29,7 @@ import (
 	"strings"
 )
 
+//GetFilePaths returns all paths required to build the docker image
 func GetFilePaths(workDir, dockerfile string) ([]string, error) {
 	f, err := os.Open(filepath.Join(workDir, dockerfile))
 	if err != nil {
@@ -49,15 +51,13 @@ func GetFilePaths(workDir, dockerfile string) ([]string, error) {
 		case command.Copy, command.Add:
 			parsed, err := parseCopyOrAdd(workDir, node, envVars)
 			if err != nil {
-				return nil, err
+				return nil, errors.Wrap(err, fmt.Sprintf("Dockerfile line %d", node.StartLine))
 			}
 			paths = append(paths, parsed...)
 		case command.Env:
 			envVars[node.Next.Value] = node.Next.Next.Value
 		}
 	}
-
-	fmt.Println(paths)
 
 	return paths, nil
 }
@@ -71,10 +71,23 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) ([]
 		}
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, errors.Wrap(err, "getting workdir")
+	}
+
 	lex := shell.NewLex(rune('\\'))
 	for node = node.Next; node.Next != nil; node = node.Next {
-		if match, err := regexp.MatchString("^https?://(.*)", node.Value); err != nil && match {
+		if match, err := regexp.MatchString("^https?://(.*)", node.Value); err != nil || match {
+			log.Infof("Skipping external dependency %s", node.Value)
 			continue //skip external dependencies
+		}
+
+		if !filepath.IsAbs(wd) {
+			wd, err = filepath.Abs(wd)
+			if err != nil {
+				return nil, err
+			}
 		}
 		abs := strings.Replace(filepath.Join(wd, node.Value), "\\", "/", -1) //need forward-slashes in windows so they don't get escaped by lex
 
@@ -90,9 +103,14 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) ([]
 
 		var relPaths []string
 		for _, match := range matches {
-			rel, err := filepath.Rel(wd, match)
+			rel, err := filepath.Rel(wd, match) //make path relative to work dir to check for paths outside the build context
 			if err != nil || strings.HasPrefix(rel, "..") {
-				return nil, errors.Errorf("path %s is not inside the build context", match)
+				return nil, errors.Errorf("path %s is not inside the build context", node.Value)
+			}
+
+			rel, err = filepath.Rel(cwd, match) //make path relative to cwd so "." gets interpreted correctly
+			if err != nil {
+				return nil, err
 			}
 
 			relPaths = append(relPaths, rel)

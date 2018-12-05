@@ -28,13 +28,18 @@ import (
 	"strings"
 )
 
-//GetContextFromDir creates a build context of the provided directory and writes it to the Writer
-func GetContextFromDir(dir string, w io.Writer) error {
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return errors.Wrap(err, "get context from dir")
+//CreateContextFromWorkingDir creates a build context of the provided directory and writes it to the Writer
+func CreateContextFromWorkingDir(workDir, dockerfile string, w io.Writer) error {
+	if _, err := os.Stat(workDir); os.IsNotExist(err) {
+		return errors.Wrap(err, "get context from workDir")
 	}
 
-	pm, err := excludeMatcher(dir)
+	paths, err := GetFilePaths(workDir, dockerfile) //paths are relative to the directory this executable runs in
+	if err != nil {
+		return err
+	}
+
+	pm, err := excludeMatcher(workDir)
 	if err != nil {
 		return errors.Wrap(err, "getting exclude pattern matcher")
 	}
@@ -45,52 +50,82 @@ func GetContextFromDir(dir string, w io.Writer) error {
 	tw := tar.NewWriter(gzw)
 	defer tw.Close()
 
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
+	for _, path := range paths {
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) {
 			return err
 		}
 
-		if path == dir {
-			return nil //do not include the original path in the tar.gz
+		if info.IsDir() {
+			err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+				if p == path {
+					return nil
+				}
+
+				rel, err := filepath.Rel(workDir, p) //make path relative to work dir
+				if err != nil {
+					return err
+				}
+
+				if skip, err := shouldSkipPath(pm, info.IsDir(), rel); skip {
+					return err
+				}
+
+				if !info.Mode().IsRegular() {
+					return nil
+				}
+
+				header, err := tar.FileInfoHeader(info, info.Name())
+				if err != nil {
+					return errors.Wrap(err, "creating tar file info header")
+				}
+				header.Name = rel
+
+				return copyFile(header, p, tw)
+			})
+			if err != nil {
+				return err
+			}
+		} else {
+			if skip, _ := shouldSkipPath(pm, info.IsDir(), path); skip {
+				continue
+			}
+
+			if info.Mode().IsRegular() {
+				continue
+			}
+
+			header, err := tar.FileInfoHeader(info, info.Name())
+			if err != nil {
+				return errors.Wrap(err, "creating tar file info header")
+			}
+			header.Name = path
+
+			if err := copyFile(header, path, tw); err != nil {
+				return err
+			}
 		}
+	}
 
-		relPath, err := filepath.Rel(dir, path)
-		if err != nil {
-			return nil
-		}
+	return nil
+}
 
-		if ret, err := shouldSkipPath(pm, info.IsDir(), relPath); ret {
-			return err
-		}
+func copyFile(header *tar.Header, path string, to *tar.Writer) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return errors.Wrap(err, "opening file")
+	}
 
-		header, err := tar.FileInfoHeader(info, info.Name())
-		if err != nil {
-			return errors.Wrap(err, "creating tar file header")
-		}
+	err = to.WriteHeader(header)
+	if err != nil {
+		return errors.Wrap(err, "writing tar file header")
+	}
 
-		header.Name = strings.Replace(relPath, "\\", "/", -1) //replace all backslashes with forward slashes
+	if _, err := io.Copy(to, f); err != nil {
+		return errors.Wrap(err, "copying file into tar")
+	}
 
-		if err := tw.WriteHeader(header); err != nil {
-			return errors.Wrap(err, "write header to tar")
-		}
-
-		if !info.Mode().IsRegular() {
-			return nil
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			return errors.Wrap(err, "opening file")
-		}
-
-		if _, err := io.Copy(tw, f); err != nil {
-			return errors.Wrap(err, "copying file into tar")
-		}
-
-		f.Close()
-
-		return nil
-	})
+	return nil
 }
 
 func shouldSkipPath(pm *fileutils.PatternMatcher, isDir bool, relPath string) (bool, error) {
