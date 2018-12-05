@@ -31,7 +31,7 @@ import (
 
 //GetFilePaths returns all paths required to build the docker image
 func GetFilePaths(workDir, dockerfile string) ([]string, error) {
-	dfPath := filepath.Join(workDir, dockerfile)
+	dfPath := strings.Replace(filepath.Join(workDir, dockerfile), "\\", "/", -1)
 	f, err := os.Open(dfPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "opening dockerfile")

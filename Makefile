@@ -1,4 +1,4 @@
-all: deps lint fmt vet build
+all: deps lint fmt vet test build
 
 deps:
 	go get github.com/golang/lint/golint
@@ -18,6 +18,9 @@ lint:
 
 gox:
 	go get github.com/mitchellh/gox
+
+test:
+	go test ./...
 
 build-all:
 	mkdir -p out && cd out
