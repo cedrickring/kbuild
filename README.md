@@ -8,6 +8,7 @@ See [Kaniko](https://github.com/GoogleContainerTools/kaniko)
 1. `~/.docker/config.json` exists and authenticated to a registry
 2. [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-using-curl) is installed and properly configured 
 3. a Kubernetes Cluster
+4. a Container Registry
 
 ### Usage
 
@@ -59,7 +60,7 @@ empty volume with the Kaniko container, and extracted in the empty volume.
 * Only one tag can be specified ([#9](https://github.com/cedrickring/kbuild/issues/9))
 * Build args are not supported
 * You cannot specify args for the Kaniko executor
-* 
 
 #### Windows
 * When running on windows, your `%TEMP%` directory must be in `C:` (or your default drive).
+* The docker-credential-wincred helper is not supported by Kaniko

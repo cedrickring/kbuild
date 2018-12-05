@@ -31,7 +31,8 @@ import (
 
 //GetFilePaths returns all paths required to build the docker image
 func GetFilePaths(workDir, dockerfile string) ([]string, error) {
-	f, err := os.Open(filepath.Join(workDir, dockerfile))
+	dfPath := filepath.Join(workDir, dockerfile)
+	f, err := os.Open(dfPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "opening dockerfile")
 	}
@@ -58,6 +59,8 @@ func GetFilePaths(workDir, dockerfile string) ([]string, error) {
 			envVars[node.Next.Value] = node.Next.Next.Value
 		}
 	}
+
+	paths = append(paths, dfPath) //add Dockerfile every time
 
 	return paths, nil
 }
@@ -112,6 +115,7 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) ([]
 			if err != nil {
 				return nil, err
 			}
+			rel = strings.Replace(rel, "\\", "/", -1)
 
 			relPaths = append(relPaths, rel)
 		}
