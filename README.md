@@ -8,6 +8,7 @@ See [Kaniko](https://github.com/GoogleContainerTools/kaniko)
 1. `~/.docker/config.json` exists and authenticated to a registry
 2. [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-using-curl) is installed and properly configured 
 3. a Kubernetes Cluster
+4. a Container Registry
 
 ### Usage
 
@@ -23,6 +24,14 @@ To specify a Dockerfile in the working directory, use:
 kbuild -t repository:tag -d Dockerfile.dev
 ```
 
+or
+
+```bash
+kbuild --tag repository:tag --dockerfile Dockerfile.dev
+```
+
+respectively.
+
 ### Additional Flags
  
 #### -w / --workdir
@@ -31,7 +40,7 @@ Specify the working directory (defaults to the directory you're currently in)
 
 #### -d / --dockerfile
 
-Path to the `Dockerfile` in the build context (defaults to `./Dockerfile`)
+Path to the `Dockerfile` in the build context (defaults to `Dockerfile`)
 
 #### -c / --cache
 
@@ -39,7 +48,7 @@ Enable `RUN` command caching for faster builds (See [here](https://github.com/Go
 
 #### --cache-repo
 
-Specify the repo to cache build steps in (defaults to `<repository>cache`, repo derived from the image tag)
+Specify the repo to cache build steps in (defaults to `<repository>cache`, repo retrieved from the image tag)
 
 ### How does kbuild work?
 
@@ -48,5 +57,10 @@ empty volume with the Kaniko container, and extracted in the empty volume.
 
 ### Limitations
 
+* Only one tag can be specified ([#9](https://github.com/cedrickring/kbuild/issues/9))
+* Build args are not supported
+* You cannot specify args for the Kaniko executor
+
 #### Windows
 * When running on windows, your `%TEMP%` directory must be in `C:` (or your default drive).
+* The docker-credential-wincred helper is not supported by Kaniko

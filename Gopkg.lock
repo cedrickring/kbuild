@@ -155,6 +155,18 @@
   revision = "a7b3b318ed4e1ae5b80602b08627267303c68572"
 
 [[projects]]
+  digest = "1:c64de1a9bb86a05b9465b831472a19de968228c41fee9bb130d80f8d346a5517"
+  name = "github.com/moby/buildkit"
+  packages = [
+    "frontend/dockerfile/command",
+    "frontend/dockerfile/parser",
+    "frontend/dockerfile/shell",
+  ]
+  pruneopts = "UT"
+  revision = "8cf9bec86a7f11fe6591804aee152c8e8a7a8a0d"
+  version = "v0.3.3"
+
+[[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
   name = "github.com/modern-go/concurrent"
   packages = ["."]
@@ -478,6 +490,9 @@
     "github.com/docker/docker/pkg/fileutils",
     "github.com/google/go-containerregistry/pkg/name",
     "github.com/logrusorgru/aurora",
+    "github.com/moby/buildkit/frontend/dockerfile/command",
+    "github.com/moby/buildkit/frontend/dockerfile/parser",
+    "github.com/moby/buildkit/frontend/dockerfile/shell",
     "github.com/pkg/errors",
     "github.com/spf13/cobra",
     "k8s.io/api/core/v1",

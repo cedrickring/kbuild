@@ -43,6 +43,9 @@ type Build struct {
 	tarPath string
 }
 
+//ErrorBuildFailed is an error for a failed build
+var ErrorBuildFailed = errors.New("build failed")
+
 //StartBuild starts a Kaniko build with options provided in `Build`
 func (b Build) StartBuild() error {
 	client, err := utils.GetClient()
@@ -92,7 +95,7 @@ func (b Build) StartBuild() error {
 
 	podStatus, err := pods.Get(pod.Name, metav1.GetOptions{})
 	if err == nil && podStatus.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" { //build container exited with a non 0 code
-		return errors.New("Build failed.")
+		return ErrorBuildFailed
 	}
 
 	log.Info("Build succeeded.")
@@ -132,7 +135,7 @@ func (b *Build) generateContext() (func(), error) {
 	}
 	defer file.Close()
 
-	err = docker.GetContextFromDir(b.WorkDir, file)
+	err = docker.CreateContextFromWorkingDir(b.WorkDir, b.DockerfilePath, file)
 	if err != nil {
 		return nil, errors.Wrap(err, "generating context")
 	}

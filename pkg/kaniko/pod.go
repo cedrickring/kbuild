@@ -21,13 +21,10 @@ import (
 	"github.com/cedrickring/kbuild/pkg/utils/constants"
 	"github.com/google/go-containerregistry/pkg/name"
 	"k8s.io/api/core/v1"
-	"strings"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 func (b Build) getKanikoPod() *v1.Pod {
-	dockerfile := strings.Replace(b.DockerfilePath, ".", "Dockerfile", -1)
-
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "kaniko-",
@@ -58,7 +55,7 @@ func (b Build) getKanikoPod() *v1.Pod {
 					Name:  constants.KanikoContainerName,
 					Image: "gcr.io/kaniko-project/executor",
 					Args: []string{
-						"--dockerfile=" + dockerfile,
+						"--dockerfile=" + b.DockerfilePath,
 						"--context=dir:///kaniko/build-context",
 						"--destination=" + b.ImageTag,
 					},

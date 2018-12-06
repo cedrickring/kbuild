@@ -34,6 +34,10 @@ required = [
   name = "github.com/docker/docker"
   version = "v17.05.0-ce"
 
+[[constraint]]
+  name = "github.com/moby/buildkit"
+  version = "v0.3.3"
+
 [prune]
   go-tests = true
   unused-packages = true

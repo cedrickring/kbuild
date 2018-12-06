@@ -24,7 +24,6 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 var (
@@ -42,7 +41,7 @@ func main() {
 		Short:   "Build a container image inside a Kubernetes Cluster with Kaniko.",
 		Run:     run,
 	}
-	rootCmd.Flags().StringVarP(&dockerfile, "dockerfile", "d", ".", "Path to Dockerfile inside working directory")
+	rootCmd.Flags().StringVarP(&dockerfile, "dockerfile", "d", "Dockerfile", "Path to Dockerfile inside working directory")
 	rootCmd.Flags().StringVarP(&workingDir, "workDir", "w", ".", "Working directory")
 	rootCmd.Flags().StringVarP(&imageTag, "tag", "t", "", "Final image name (required)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
@@ -80,15 +79,18 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	err = b.StartBuild()
 	if err != nil {
-		log.Err(err)
+		if err == kaniko.ErrorBuildFailed {
+			log.Error("Build failed.")
+		} else {
+			log.Err(err)
+		}
 		os.Exit(1)
 	}
 }
 
 func checkForDockerfile() error {
-	df := strings.Replace(dockerfile, ".", "Dockerfile", -1)
-	if _, err := os.Stat(filepath.Join(workingDir, df)); err != nil {
-		return errors.Errorf("Can't find Dockerfile in the working directory. (%s)", workingDir+"/"+df)
+	if _, err := os.Stat(filepath.Join(workingDir, dockerfile)); err != nil {
+		return errors.Errorf("Can't find Dockerfile in the working directory. (%s)", workingDir+"/"+dockerfile)
 	}
 	return nil
 }
