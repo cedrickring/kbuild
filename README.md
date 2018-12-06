@@ -32,6 +32,8 @@ kbuild --tag repository:tag --dockerfile Dockerfile.dev
 
 respectively.
 
+You can specify multiple image tags by repeating the tag flag.
+
 ### Additional Flags
  
 #### -w / --workdir
@@ -57,7 +59,6 @@ empty volume with the Kaniko container, and extracted in the empty volume.
 
 ### Limitations
 
-* Only one tag can be specified ([#9](https://github.com/cedrickring/kbuild/issues/9))
 * Build args are not supported
 * You cannot specify args for the Kaniko executor
 
