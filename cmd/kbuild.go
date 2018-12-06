@@ -29,7 +29,7 @@ import (
 var (
 	dockerfile string
 	workingDir string
-	imageTag   string
+	imageTags  []string
 	useCache   bool
 	cacheRepo  string
 )
@@ -43,7 +43,7 @@ func main() {
 	}
 	rootCmd.Flags().StringVarP(&dockerfile, "dockerfile", "d", "Dockerfile", "Path to Dockerfile inside working directory")
 	rootCmd.Flags().StringVarP(&workingDir, "workDir", "w", ".", "Working directory")
-	rootCmd.Flags().StringVarP(&imageTag, "tag", "t", "", "Final image name (required)")
+	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
 	rootCmd.Flags().StringVarP(&cacheRepo, "cache-repo", "", "", "Repository for cached images (see --cache)")
 	rootCmd.MarkFlagRequired("tag")
@@ -52,14 +52,15 @@ func main() {
 }
 
 func run(_ *cobra.Command, _ []string) {
-	_, err := name.NewTag(imageTag, name.WeakValidation) //weak validation to allow only <registry/<repo> without a specific tag
-	if err != nil {
+	if err := validateImageTags(); err != nil {
 		log.Err(err)
+		os.Exit(1)
 		return
 	}
 
 	if err := checkForDockerfile(); err != nil {
 		log.Err(err)
+		os.Exit(1)
 		return
 	}
 
@@ -73,11 +74,11 @@ func run(_ *cobra.Command, _ []string) {
 	b := kaniko.Build{
 		DockerfilePath: dockerfile,
 		WorkDir:        workingDir,
-		ImageTag:       imageTag,
+		ImageTags:      imageTags,
 		Cache:          useCache,
 		CacheRepo:      cacheRepo,
 	}
-	err = b.StartBuild()
+	err := b.StartBuild()
 	if err != nil {
 		if err == kaniko.ErrorBuildFailed {
 			log.Error("Build failed.")
@@ -88,9 +89,19 @@ func run(_ *cobra.Command, _ []string) {
 	}
 }
 
+func validateImageTags() error {
+	for _, tag := range imageTags {
+		_, err := name.NewTag(tag, name.WeakValidation) //weak validation to allow only <registry/<repo> without a specific tag
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func checkForDockerfile() error {
 	if _, err := os.Stat(filepath.Join(workingDir, dockerfile)); err != nil {
-		return errors.Errorf("Can't find Dockerfile in the working directory. (%s)", workingDir+"/"+dockerfile)
+		return errors.Errorf("Can't find Dockerfile in the working directory. (%s/%s)", workingDir, dockerfile)
 	}
 	return nil
 }

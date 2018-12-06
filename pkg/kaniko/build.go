@@ -34,7 +34,7 @@ import (
 
 //Build contains all required information to start a Kaniko build
 type Build struct {
-	ImageTag       string
+	ImageTags      []string
 	WorkDir        string
 	DockerfilePath string
 	Cache          bool
