@@ -57,7 +57,6 @@ func (b Build) getKanikoPod() *v1.Pod {
 					Args: []string{
 						"--dockerfile=" + b.DockerfilePath,
 						"--context=dir:///kaniko/build-context",
-						"--destination=" + b.ImageTag,
 					},
 					VolumeMounts: []v1.VolumeMount{
 						{
@@ -93,19 +92,24 @@ func (b Build) getKanikoPod() *v1.Pod {
 		},
 	}
 
+	//add all image tags as destination arguments
+	for _, tag := range b.ImageTags {
+		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, fmt.Sprintf("--destination=%s", tag))
+	}
+
 	//only enable caching if provided by "kbuild --cache"
 	if b.Cache {
-		cacheTag := b.CacheRepo
-		if cacheTag == "" {
-			tag, err := name.NewTag(b.ImageTag, name.WeakValidation)
+		cacheRepo := b.CacheRepo
+		if cacheRepo == "" {
+			tag, err := name.NewTag(b.ImageTags[0], name.WeakValidation)
 			if err != nil {
 				return nil
 			}
 
-			cacheTag = fmt.Sprintf("%s/%scache", tag.RegistryStr(), tag.RepositoryStr())
+			cacheRepo = fmt.Sprintf("%s/%scache", tag.RegistryStr(), tag.RepositoryStr())
 		}
 
-		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, "--cache=true", "--cache-repo="+cacheTag)
+		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, "--cache=true", fmt.Sprintf("--cache-repo=%s", cacheRepo))
 	}
 
 	return pod
