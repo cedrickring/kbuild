@@ -42,7 +42,7 @@ func main() {
 		Run:     run,
 	}
 	rootCmd.Flags().StringVarP(&dockerfile, "dockerfile", "d", "Dockerfile", "Path to Dockerfile inside working directory")
-	rootCmd.Flags().StringVarP(&workingDir, "workDir", "w", ".", "Working directory")
+	rootCmd.Flags().StringVarP(&workingDir, "workdir", "w", ".", "Working directory")
 	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
 	rootCmd.Flags().StringVarP(&cacheRepo, "cache-repo", "", "", "Repository for cached images (see --cache)")
