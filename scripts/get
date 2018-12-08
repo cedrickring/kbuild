@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+ARCH=$(uname -m)
+case "$ARCH" in
+  "x86" | "i386" | "i686") ARCH="386";;
+  "x86_64") ARCH="amd64";;
+  *)
+  echo "Unsupported arch $ARCH"
+  exit 1
+  ;;
+esac
+
+OS=$(echo `uname`|tr '[:upper:]' '[:lower:]')
+
+EXECUTABLE_NAME="kbuild_${OS}_${ARCH}"
+VERSION=$(curl -fsSl https://api.github.com/repos/cedrickring/kbuild/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+
+echo "Downloading kbuild version ${VERSION}"
+DOWNLOAD_URL="https://github.com/cedrickring/kbuild/releases/download/${VERSION}/${EXECUTABLE_NAME}"
+
+sudo curl -fsSL $DOWNLOAD_URL -o /usr/local/bin/kbuild
+sudo chmod +x /usr/local/bin/kbuild
+
+echo "Downloaded kbuild to /usr/local/bin/kbuild"
