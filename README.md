@@ -10,6 +10,14 @@ See [Kaniko](https://github.com/GoogleContainerTools/kaniko)
 3. a Kubernetes Cluster
 4. a Container Registry
 
+### Installation
+
+For Linux or Mac use
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/cedrickring/kbuild/master/scripts/get | bash
+```
+
 ### Usage
 
 Build an image of the current directory with tag `repository:tag`
