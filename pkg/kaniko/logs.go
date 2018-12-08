@@ -29,7 +29,7 @@ import (
 
 //code used from github.com/GoogleContainerTools/skaffold
 func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func() {
-	pods := clientset.CoreV1().Pods("default")
+	pods := clientset.CoreV1().Pods(b.Namespace)
 
 	var wg sync.WaitGroup
 	wg.Add(1)

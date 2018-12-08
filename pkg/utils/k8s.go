@@ -52,10 +52,10 @@ func GetClient() (*kubernetes.Clientset, error) {
 }
 
 //WaitForPodInitialized waits for a specific pod to be initialized
-func WaitForPodInitialized(clientset *kubernetes.Clientset, podName string) error {
+func WaitForPodInitialized(clientset *kubernetes.Clientset, namespace, podName string) error {
 	log.Infof("Waiting for pod %s to be initialized", podName)
 
-	pods := clientset.CoreV1().Pods("default")
+	pods := clientset.CoreV1().Pods(namespace)
 
 	ctx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancelTimeout()
@@ -81,8 +81,8 @@ func WaitForPodInitialized(clientset *kubernetes.Clientset, podName string) erro
 }
 
 //WaitForPodComplete waits for a specific pod to be in complete state
-func WaitForPodComplete(clientset *kubernetes.Clientset, podName string) error {
-	pods := clientset.CoreV1().Pods("default")
+func WaitForPodComplete(clientset *kubernetes.Clientset, namespace, podName string) error {
+	pods := clientset.CoreV1().Pods(namespace)
 
 	return wait.PollImmediateUntil(500*time.Millisecond, func() (done bool, err error) {
 		pod, err := pods.Get(podName, metav1.GetOptions{
