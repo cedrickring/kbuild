@@ -15,7 +15,7 @@ See [Kaniko](https://github.com/GoogleContainerTools/kaniko)
 For Linux or Mac use
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cedrickring/kbuild/scripts/get | bash
+curl -fsSL https://raw.githubusercontent.com/cedrickring/kbuild/master/scripts/get | bash
 ```
 
 ### Usage
