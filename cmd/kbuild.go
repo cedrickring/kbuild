@@ -73,6 +73,8 @@ func run(_ *cobra.Command, _ []string) {
 		log.Infof(cachingInfo, "disabled")
 	}
 
+	log.Infof(`Running in namespace "%s"`, namespace)
+
 	b := kaniko.Build{
 		DockerfilePath: dockerfile,
 		WorkDir:        workingDir,
