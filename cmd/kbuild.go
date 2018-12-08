@@ -32,6 +32,7 @@ var (
 	imageTags  []string
 	useCache   bool
 	cacheRepo  string
+	namespace  string
 )
 
 func main() {
@@ -46,6 +47,7 @@ func main() {
 	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
 	rootCmd.Flags().StringVarP(&cacheRepo, "cache-repo", "", "", "Repository for cached images (see --cache)")
+	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The namespace to run the build in")
 	rootCmd.MarkFlagRequired("tag")
 
 	rootCmd.Execute()
@@ -77,6 +79,7 @@ func run(_ *cobra.Command, _ []string) {
 		ImageTags:      imageTags,
 		Cache:          useCache,
 		CacheRepo:      cacheRepo,
+		Namespace:      namespace,
 	}
 	err := b.StartBuild()
 	if err != nil {
