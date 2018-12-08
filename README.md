@@ -60,6 +60,10 @@ Enable `RUN` command caching for faster builds (See [here](https://github.com/Go
 
 Specify the repo to cache build steps in (defaults to `<repository>cache`, repo retrieved from the image tag)
 
+#### -n / --namespace
+
+Specify namespace for the builder to run in (defaults to "default" namespace)
+
 ### How does kbuild work?
 
 In order to use the local context, the context needs to be tar-ed, copied to an Init Container, which shares an
