@@ -1,14 +1,14 @@
-# kbuild
+# ![Logo](logo/kbuild.png)
 
 Build container images inside a Kubernetes Cluster with your local build context.
 
-See [Kaniko](https://github.com/GoogleContainerTools/kaniko)
+For more information see: [Kaniko](https://github.com/GoogleContainerTools/kaniko)
 
 ### Requirements
 1. `~/.docker/config.json` exists and authenticated to a registry
 2. [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-using-curl) is installed and properly configured 
-3. a Kubernetes Cluster
-4. a Container Registry
+3. A Kubernetes Cluster
+4. A Container Registry
 
 ### Installation
 
