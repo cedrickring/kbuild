@@ -91,7 +91,7 @@ func CreateContextFromWorkingDir(workDir, dockerfile string, w io.Writer) error 
 				continue
 			}
 
-			if info.Mode().IsRegular() {
+			if !info.Mode().IsRegular() {
 				continue
 			}
 
