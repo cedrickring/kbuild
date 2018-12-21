@@ -34,7 +34,9 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 	var wg sync.WaitGroup
 	wg.Add(1)
 
+	var linesRead int32 = 0
 	var retry int32 = 1
+
 	go func() {
 		defer wg.Done()
 
@@ -51,6 +53,7 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 
 			scanner := bufio.NewScanner(readCloser)
 			for scanner.Scan() {
+				atomic.AddInt32(&linesRead, 1)
 				fmt.Println(scanner.Text())
 			}
 
@@ -61,5 +64,14 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 	return func() {
 		atomic.StoreInt32(&retry, 0)
 		wg.Wait()
+
+		if atomic.LoadInt32(&linesRead) == 0 {
+			logs, err := pods.GetLogs(podName, &v1.PodLogOptions{
+				Container: constants.KanikoContainerName,
+			}).DoRaw()
+			if err == nil {
+				fmt.Println(string(logs))
+			}
+		}
 	}
 }
