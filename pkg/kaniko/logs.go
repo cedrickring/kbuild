@@ -34,7 +34,7 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	var linesRead int32 = 0
+	var linesRead int32
 	var retry int32 = 1
 
 	go func() {
