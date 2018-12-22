@@ -40,6 +40,7 @@ type Build struct {
 	Cache          bool
 	CacheRepo      string
 	Namespace      string
+	BuildArgs      []string
 
 	tarPath string
 }
@@ -136,7 +137,7 @@ func (b *Build) generateContext() (func(), error) {
 	}
 	defer file.Close()
 
-	err = docker.CreateContextFromWorkingDir(b.WorkDir, b.DockerfilePath, file)
+	err = docker.CreateContextFromWorkingDir(b.WorkDir, b.DockerfilePath, file, b.BuildArgs)
 	if err != nil {
 		return nil, errors.Wrap(err, "generating context")
 	}

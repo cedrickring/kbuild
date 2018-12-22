@@ -30,7 +30,7 @@ import (
 )
 
 //GetFilePaths returns all paths required to build the docker image
-func GetFilePaths(workDir, dockerfile string) ([]string, error) {
+func GetFilePaths(workDir, dockerfile string, buildArgs []string) ([]string, error) {
 	dfPath := strings.Replace(filepath.Join(workDir, dockerfile), "\\", "/", -1)
 	f, err := os.Open(dfPath)
 	if err != nil {
@@ -46,17 +46,27 @@ func GetFilePaths(workDir, dockerfile string) ([]string, error) {
 
 	children := result.AST.Children
 
-	envVars := map[string]string{}
+	envVars := make(map[string]string)
+	args, err := parseBuildArgs(buildArgs)
+	if err != nil {
+		return nil, errors.Wrap(err, "parsing build args from flags")
+	}
+
 	for _, node := range children {
 		switch node.Value {
 		case command.Copy, command.Add:
-			parsed, err := parseCopyOrAdd(workDir, node, envVars)
+			parsed, err := parseCopyOrAdd(workDir, node, envVars, args)
 			if err != nil {
 				return nil, errors.Wrap(err, fmt.Sprintf("Dockerfile line %d", node.StartLine))
 			}
 			paths = append(paths, parsed...)
 		case command.Env:
 			envVars[node.Next.Value] = node.Next.Next.Value
+		case command.Arg:
+			err := parseArgCommand(node, args)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -65,7 +75,7 @@ func GetFilePaths(workDir, dockerfile string) ([]string, error) {
 	return paths, nil
 }
 
-func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) ([]string, error) {
+func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string, buildArgs map[string]string) ([]string, error) {
 	var paths []string
 
 	for _, flag := range node.Flags {
@@ -93,6 +103,18 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) ([]
 			}
 		}
 		abs := strings.Replace(filepath.Join(wd, node.Value), "\\", "/", -1) //need forward-slashes in windows so they don't get escaped by lex
+
+		for key, value := range buildArgs {
+			if _, ok := envVars[key]; ok {
+				continue //ENV variables always override ARG variables
+			}
+
+			r := regexp.MustCompile(`(\$` + key + ")")
+			submatch := r.FindStringSubmatch(abs)
+			if len(submatch) > 0 {
+				abs = r.ReplaceAllString(abs, value)
+			}
+		}
 
 		expanded, err := lex.ProcessWordWithMap(abs, envVars)
 		if err != nil {
@@ -124,4 +146,49 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string) ([]
 	}
 
 	return paths, nil
+}
+
+func parseArgCommand(node *parser.Node, args map[string]string) error {
+	arg := node.Next.Value
+	if _, ok := args[arg]; ok {
+		return nil //skip if arg is set by flag, otherwise check for default value
+	}
+
+	if !strings.Contains(arg, "=") {
+		if _, ok := args[arg]; !ok {
+			return errors.Errorf("required arg %s was not set by --arg flag", arg)
+		}
+		return nil
+	}
+
+	key, value, err := parseArg(arg)
+	if err != nil {
+		return errors.Wrap(err, "parsing ARG command")
+	}
+	args[key] = value
+	return nil
+}
+
+func parseBuildArgs(buildArgs []string) (map[string]string, error) {
+	args := make(map[string]string)
+
+	for _, arg := range buildArgs {
+		key, value, err := parseArg(arg)
+		if err != nil {
+			return args, err
+		}
+		args[key] = value
+	}
+
+	return args, nil
+}
+
+func parseArg(arg string) (key, value string, err error) {
+	split := strings.Split(arg, "=")
+	if len(split) != 2 {
+		return "", "", errors.New("invalid arg format, must be ARG=VALUE")
+	}
+	key = split[0]
+	value = split[1]
+	return key, value, nil
 }
