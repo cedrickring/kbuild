@@ -1,0 +1,4 @@
+FROM scratch
+ARG TEST
+
+COPY $TEST .
