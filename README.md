@@ -64,6 +64,10 @@ Specify the repo to cache build steps in (defaults to `<repository>cache`, repo 
 
 Specify namespace for the builder to run in (defaults to "default" namespace)
 
+#### --build-arg
+
+This flag allows you to pass in build args (ARG) for the Kaniko executor
+
 ### How does kbuild work?
 
 In order to use the local context, the context needs to be tar-ed, copied to an Init Container, which shares an
@@ -71,7 +75,6 @@ empty volume with the Kaniko container, and extracted in the empty volume.
 
 ### Limitations
 
-* Build args are not supported
 * You cannot specify args for the Kaniko executor
 
 #### Windows

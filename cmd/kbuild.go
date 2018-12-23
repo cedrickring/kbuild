@@ -48,7 +48,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The namespace to run the build in")
 	rootCmd.Flags().StringVarP(&cacheRepo, "cache-repo", "", "", "Repository for cached images (see --cache)")
 	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
-	rootCmd.Flags().StringSliceVarP(&buildArgs, "arg", "", nil, "Optional build arguments (ARG)")
+	rootCmd.Flags().StringSliceVarP(&buildArgs, "build-arg", "", nil, "Optional build arguments (ARG)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
 	rootCmd.MarkFlagRequired("tag")
 
