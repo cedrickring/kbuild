@@ -1,8 +1,9 @@
 FROM golang:alpine as build-env
+ARG MAIN=main.go
 COPY . /src/
-RUN cd /src && go build -o helloworld main.go
+RUN cd /src && go build -o helloworld $MAIN
 
-FROM alpine
+FROM scratch
 WORKDIR /app
 COPY --from=build-env /src/helloworld /app/
-CMD ["/app/helloworld"]
+ENTRYPOINT ["/app/helloworld"]

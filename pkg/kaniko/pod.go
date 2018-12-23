@@ -97,6 +97,11 @@ func (b Build) getKanikoPod() *v1.Pod {
 		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, fmt.Sprintf("--destination=%s", tag))
 	}
 
+	//add all build args to Kaniko container args
+	for _, arg := range b.BuildArgs {
+		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, fmt.Sprintf("--build-arg=%s", arg))
+	}
+
 	//only enable caching if provided by "kbuild --cache"
 	if b.Cache {
 		cacheRepo := b.CacheRepo

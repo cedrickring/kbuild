@@ -1,0 +1,6 @@
+FROM scratch
+ARG TEST
+ARG OTHER
+
+COPY $TEST .
+COPY ${OTHER} .

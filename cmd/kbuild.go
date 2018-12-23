@@ -29,10 +29,11 @@ import (
 var (
 	dockerfile string
 	workingDir string
-	imageTags  []string
-	useCache   bool
 	cacheRepo  string
 	namespace  string
+	imageTags  []string
+	buildArgs  []string
+	useCache   bool
 )
 
 func main() {
@@ -44,10 +45,11 @@ func main() {
 	}
 	rootCmd.Flags().StringVarP(&dockerfile, "dockerfile", "d", "Dockerfile", "Path to Dockerfile inside working directory")
 	rootCmd.Flags().StringVarP(&workingDir, "workdir", "w", ".", "Working directory")
-	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
-	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
-	rootCmd.Flags().StringVarP(&cacheRepo, "cache-repo", "", "", "Repository for cached images (see --cache)")
 	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The namespace to run the build in")
+	rootCmd.Flags().StringVarP(&cacheRepo, "cache-repo", "", "", "Repository for cached images (see --cache)")
+	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
+	rootCmd.Flags().StringSliceVarP(&buildArgs, "build-arg", "", nil, "Optional build arguments (ARG)")
+	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
 	rootCmd.MarkFlagRequired("tag")
 
 	rootCmd.Execute()
@@ -82,6 +84,7 @@ func run(_ *cobra.Command, _ []string) {
 		Cache:          useCache,
 		CacheRepo:      cacheRepo,
 		Namespace:      namespace,
+		BuildArgs:      buildArgs,
 	}
 	err := b.StartBuild()
 	if err != nil {

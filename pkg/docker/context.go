@@ -29,12 +29,12 @@ import (
 )
 
 //CreateContextFromWorkingDir creates a build context of the provided directory and writes it to the Writer
-func CreateContextFromWorkingDir(workDir, dockerfile string, w io.Writer) error {
+func CreateContextFromWorkingDir(workDir, dockerfile string, w io.Writer, buildArgs []string) error {
 	if _, err := os.Stat(workDir); os.IsNotExist(err) {
 		return errors.Wrap(err, "get context from workDir")
 	}
 
-	paths, err := GetFilePaths(workDir, dockerfile) //paths are relative to the directory this executable runs in
+	paths, err := GetFilePaths(workDir, dockerfile, buildArgs) //paths are relative to the directory this executable runs in
 	if err != nil {
 		return err
 	}

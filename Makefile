@@ -22,6 +22,9 @@ gox:
 test:
 	go test ./...
 
+install: all
+	sudo cp bin/kbuild /usr/local/bin/kbuild-dev
+
 build-all:
 	mkdir -p out && cd out
 	which gox || make gox
