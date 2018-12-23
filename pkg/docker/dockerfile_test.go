@@ -85,5 +85,4 @@ func TestGetBuildArgs(t *testing.T) {
 			t.Errorf("Expected %s but got %s", test.argsMap, args)
 		}
 	}
-
 }
