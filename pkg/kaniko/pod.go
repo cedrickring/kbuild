@@ -92,16 +92,14 @@ func (b Build) getKanikoPod() *v1.Pod {
 		},
 	}
 
-	kanikoContainer := pod.Spec.Containers[0]
-
 	//add all image tags as destination arguments
 	for _, tag := range b.ImageTags {
-		kanikoContainer.Args = append(kanikoContainer.Args, fmt.Sprintf("--destination=%s", tag))
+		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, fmt.Sprintf("--destination=%s", tag))
 	}
 
 	//add all build args to Kaniko container args
 	for _, arg := range b.BuildArgs {
-		kanikoContainer.Args = append(kanikoContainer.Args, fmt.Sprintf("--build-arg %s", arg))
+		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, fmt.Sprintf("--build-arg=%s", arg))
 	}
 
 	//only enable caching if provided by "kbuild --cache"
@@ -116,7 +114,7 @@ func (b Build) getKanikoPod() *v1.Pod {
 			cacheRepo = fmt.Sprintf("%s/%scache", tag.RegistryStr(), tag.RepositoryStr())
 		}
 
-		kanikoContainer.Args = append(kanikoContainer.Args, "--cache=true", fmt.Sprintf("--cache-repo=%s", cacheRepo))
+		pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args, "--cache=true", fmt.Sprintf("--cache-repo=%s", cacheRepo))
 	}
 
 	return pod
