@@ -109,7 +109,7 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string, bui
 				continue //ENV variables always override ARG variables
 			}
 
-			r := regexp.MustCompile(`(\$` + key + ")")
+			r := regexp.MustCompile(`(\$` + key + `|\${` + key + `})`)
 			submatch := r.FindStringSubmatch(abs)
 			if len(submatch) > 0 {
 				abs = r.ReplaceAllString(abs, value)

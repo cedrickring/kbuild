@@ -25,8 +25,8 @@ func TestGetFilePaths(t *testing.T) {
 		},
 		{
 			dockerfile:    "Dockerfile.arg-test",
-			expectedPaths: []string{"test/test.go", "test/Dockerfile.arg-test"},
-			buildArgs:     []string{"TEST=test.go"},
+			expectedPaths: []string{"test/test.go", "test/other.go", "test/Dockerfile.arg-test"},
+			buildArgs:     []string{"TEST=test.go", "OTHER=other.go"},
 			shouldErr:     false,
 		},
 		{
