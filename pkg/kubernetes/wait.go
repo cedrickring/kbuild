@@ -14,42 +14,16 @@
    limitations under the License.
 */
 
-package utils
+package kubernetes
 
 import (
 	"context"
 	"github.com/cedrickring/kbuild/pkg/log"
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" //auth for GKE clusters
-	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"path/filepath"
 	"time"
 )
-
-//GetClient creates a new kubernetes client with the kubeconfig at ~/.kube/config
-func GetClient() (*kubernetes.Clientset, error) {
-	home := homeDir()
-	if home == "" {
-		return nil, errors.New("Can't find kubeconfig at ~/.kube/config")
-	}
-	kubeconfigPath := filepath.Join(home, ".kube", "config")
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	if err != nil {
-		return nil, errors.Wrap(err, "build client config from flags")
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "new clientset from config")
-	}
-
-	return clientset, nil
-}
 
 //WaitForPodInitialized waits for a specific pod to be initialized
 func WaitForPodInitialized(clientset *kubernetes.Clientset, namespace, podName string) error {
@@ -102,11 +76,4 @@ func WaitForPodComplete(clientset *kubernetes.Clientset, namespace, podName stri
 
 		return false, nil
 	}, context.Background().Done())
-}
-
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" { //unix
-		return h
-	}
-	return os.Getenv("USERPROFILE") //windows
 }

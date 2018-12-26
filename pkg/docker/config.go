@@ -17,15 +17,19 @@
 package docker
 
 import (
-	"github.com/cedrickring/kbuild/pkg/utils"
-	"github.com/cedrickring/kbuild/pkg/utils/constants"
+	"github.com/cedrickring/kbuild/pkg/constants"
+	"github.com/cedrickring/kbuild/pkg/util"
+	"github.com/pkg/errors"
+	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
+	"path/filepath"
 )
 
 //GetConfigAsConfigMap gets the local .docker/config.json in a ConfigMap
 func GetConfigAsConfigMap() (*v1.ConfigMap, error) {
-	config, err := utils.GetDockerConfig()
+	config, err := GetConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -41,4 +45,19 @@ func GetConfigAsConfigMap() (*v1.ConfigMap, error) {
 			"config.json": string(config),
 		},
 	}, nil
+}
+
+//GetConfig reads the docker config located at ~/.docker/config.json
+func GetConfig() ([]byte, error) {
+	home := util.HomeDir()
+	if home == "" {
+		return nil, errors.New("Can't find docker config at ~/.docker/config.json")
+	}
+	dockerConfigPath := filepath.Join(home, ".docker", "config.json")
+
+	if _, err := os.Stat(dockerConfigPath); os.IsNotExist(err) {
+		return nil, errors.New("Can't find docker config at ~/.docker/config.json")
+	}
+
+	return ioutil.ReadFile(dockerConfigPath)
 }

@@ -18,14 +18,15 @@ package kaniko
 
 import (
 	"fmt"
+	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
+	"github.com/cedrickring/kbuild/pkg/kubernetes"
 	"github.com/cedrickring/kbuild/pkg/log"
-	"github.com/cedrickring/kbuild/pkg/utils"
-	"github.com/cedrickring/kbuild/pkg/utils/constants"
+	"github.com/cedrickring/kbuild/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	k8s "k8s.io/client-go/kubernetes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -50,7 +51,7 @@ var ErrorBuildFailed = errors.New("build failed")
 
 //StartBuild starts a Kaniko build with options provided in `Build`
 func (b Build) StartBuild() error {
-	client, err := utils.GetClient()
+	client, err := kubernetes.GetClient()
 	if err != nil {
 		return errors.Wrap(err, "get kubernetes client")
 	}
@@ -89,7 +90,7 @@ func (b Build) StartBuild() error {
 	log.Info("Starting build...")
 	cancel := b.streamLogs(client, pod.Name)
 
-	if err := utils.WaitForPodComplete(client, b.Namespace, pod.Name); err != nil {
+	if err := kubernetes.WaitForPodComplete(client, b.Namespace, pod.Name); err != nil {
 		return errors.Wrap(err, "waiting for kaniko pod to complete")
 	}
 
@@ -104,7 +105,7 @@ func (b Build) StartBuild() error {
 	return nil
 }
 
-func (b Build) checkForConfigMap(client *kubernetes.Clientset) error {
+func (b Build) checkForConfigMap(client *k8s.Clientset) error {
 	configMap, err := docker.GetConfigAsConfigMap()
 	if err != nil {
 		return errors.Wrap(err, "get docker config as ConfigMap")
@@ -129,7 +130,7 @@ func (b Build) checkForConfigMap(client *kubernetes.Clientset) error {
 }
 
 func (b *Build) generateContext() (func(), error) {
-	b.tarPath = filepath.Join(os.TempDir(), fmt.Sprintf("context-%s.tar.gz", utils.RandomID()))
+	b.tarPath = filepath.Join(os.TempDir(), fmt.Sprintf("context-%s.tar.gz", util.RandomID()))
 
 	file, err := os.Create(b.tarPath)
 	if err != nil {
@@ -149,8 +150,8 @@ func (b *Build) generateContext() (func(), error) {
 	}, nil
 }
 
-func (b Build) copyTarIntoPod(clientset *kubernetes.Clientset, generatedPod *v1.Pod) error {
-	if err := utils.WaitForPodInitialized(clientset, b.Namespace, generatedPod.Name); err != nil {
+func (b Build) copyTarIntoPod(clientset *k8s.Clientset, generatedPod *v1.Pod) error {
+	if err := kubernetes.WaitForPodInitialized(clientset, b.Namespace, generatedPod.Name); err != nil {
 		return errors.Wrap(err, "wait for generatedPod initialized")
 	}
 
