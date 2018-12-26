@@ -18,7 +18,7 @@ package docker
 
 import (
 	"fmt"
-	"github.com/cedrickring/kbuild/pkg/log"
+	"github.com/Sirupsen/logrus"
 	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
@@ -92,7 +92,7 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string, bui
 	lex := shell.NewLex(rune('\\'))
 	for node = node.Next; node.Next != nil; node = node.Next {
 		if match, err := regexp.MatchString("^https?://(.*)", node.Value); err != nil || match {
-			log.Infof("Skipping external dependency %s", node.Value)
+			logrus.Infof("Skipping external dependency %s", node.Value)
 			continue //skip external dependencies
 		}
 

@@ -18,7 +18,7 @@ package kubernetes
 
 import (
 	"context"
-	"github.com/cedrickring/kbuild/pkg/log"
+	"github.com/Sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -27,7 +27,7 @@ import (
 
 //WaitForPodInitialized waits for a specific pod to be initialized
 func WaitForPodInitialized(clientset *kubernetes.Clientset, namespace, podName string) error {
-	log.Infof("Waiting for pod %s to be initialized", podName)
+	logrus.Infof("Waiting for pod %s to be initialized", podName)
 
 	pods := clientset.CoreV1().Pods(namespace)
 
@@ -40,7 +40,7 @@ func WaitForPodInitialized(clientset *kubernetes.Clientset, namespace, podName s
 		})
 
 		if err != nil {
-			log.Infof("Getting pod %s", podName)
+			logrus.Infof("Getting pod %s", podName)
 			return false, nil
 		}
 
@@ -64,7 +64,7 @@ func WaitForPodComplete(clientset *kubernetes.Clientset, namespace, podName stri
 		})
 
 		if err != nil {
-			log.Infof("Getting pod %s", podName)
+			logrus.Infof("Getting pod %s", podName)
 			return false, nil
 		}
 

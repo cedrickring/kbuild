@@ -51,12 +51,14 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 				continue
 			}
 
+			fmt.Println()
 			scanner := bufio.NewScanner(readCloser)
 			for scanner.Scan() {
 				atomic.AddInt32(&linesRead, 1)
 				fmt.Println(scanner.Text())
 			}
-
+			fmt.Println()
+			
 			return
 		}
 	}()

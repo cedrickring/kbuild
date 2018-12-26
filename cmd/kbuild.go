@@ -17,8 +17,8 @@
 package main
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
-	"github.com/cedrickring/kbuild/pkg/log"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -56,26 +56,28 @@ func main() {
 }
 
 func run(_ *cobra.Command, _ []string) {
+	setupLogrus()
+
 	if err := validateImageTags(); err != nil {
-		log.Err(err)
+		logrus.Error(err)
 		os.Exit(1)
 		return
 	}
 
 	if err := checkForDockerfile(); err != nil {
-		log.Err(err)
+		logrus.Error(err)
 		os.Exit(1)
 		return
 	}
 
 	cachingInfo := "Run-Step caching is %s."
 	if useCache {
-		log.Infof(cachingInfo, "enabled")
+		logrus.Infof(cachingInfo, "enabled")
 	} else {
-		log.Infof(cachingInfo, "disabled")
+		logrus.Infof(cachingInfo, "disabled")
 	}
 
-	log.Infof(`Running in namespace "%s"`, namespace)
+	logrus.Infof(`Running in namespace "%s"`, namespace)
 
 	b := kaniko.Build{
 		DockerfilePath: dockerfile,
@@ -89,9 +91,9 @@ func run(_ *cobra.Command, _ []string) {
 	err := b.StartBuild()
 	if err != nil {
 		if err == kaniko.ErrorBuildFailed {
-			log.Error("Build failed.")
+			logrus.Error("Build failed.")
 		} else {
-			log.Err(err)
+			logrus.Error(err)
 		}
 		os.Exit(1)
 	}
@@ -112,4 +114,11 @@ func checkForDockerfile() error {
 		return errors.Errorf("Can't find Dockerfile in the working directory. (%s/%s)", workingDir, dockerfile)
 	}
 	return nil
+}
+
+func setupLogrus() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors: true,
+	})
+	logrus.SetOutput(os.Stdout)
 }

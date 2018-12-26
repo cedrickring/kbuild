@@ -39,6 +39,10 @@ required = [
   name = "github.com/moby/buildkit"
   version = "v0.3.3"
 
+[[constraint]]
+  name = "github.com/Sirupsen/logrus"
+  version = "v1.2.0"
+
 [prune]
   go-tests = true
   unused-packages = true

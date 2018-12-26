@@ -18,10 +18,10 @@ package kaniko
 
 import (
 	"fmt"
+	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
-	"github.com/cedrickring/kbuild/pkg/log"
 	"github.com/cedrickring/kbuild/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
@@ -71,12 +71,12 @@ func (b Build) StartBuild() error {
 		return errors.Wrap(err, "creating kaniko pod")
 	}
 	defer func() {
-		log.Info("Deleting build pod...")
+		logrus.Info("Deleting build pod...")
 		err := pods.Delete(pod.Name, &metav1.DeleteOptions{
 			GracePeriodSeconds: new(int64),
 		})
 		if err != nil {
-			log.Err(err)
+			logrus.Error(err)
 		}
 	}()
 
@@ -85,7 +85,7 @@ func (b Build) StartBuild() error {
 		return errors.Wrap(err, "copying context into pod")
 	}
 
-	log.Info("Starting build...")
+	logrus.Info("Starting build...")
 	cancel := b.streamLogs(client, pod.Name)
 
 	if err := kubernetes.WaitForPodComplete(client, b.Namespace, pod.Name); err != nil {
@@ -99,7 +99,7 @@ func (b Build) StartBuild() error {
 		return ErrorBuildFailed
 	}
 
-	log.Info("Build succeeded.")
+	logrus.Info("Build succeeded.")
 	return nil
 }
 
@@ -143,7 +143,7 @@ func (b *Build) generateContext() (func(), error) {
 
 	return func() {
 		if err := os.Remove(b.tarPath); err != nil {
-			log.Err(err)
+			logrus.Error(err)
 		}
 	}, nil
 }
@@ -153,7 +153,7 @@ func (b Build) copyTarIntoPod(clientset *k8s.Clientset, generatedPod *v1.Pod) er
 		return errors.Wrap(err, "wait for generatedPod initialized")
 	}
 
-	log.Info("Copying build context into container...")
+	logrus.Info("Copying build context into container...")
 	initContainerName := generatedPod.Spec.InitContainers[0].Name
 
 	tarCopy := kubernetes.Copy{
@@ -177,6 +177,6 @@ func (b Build) copyTarIntoPod(clientset *k8s.Clientset, generatedPod *v1.Pod) er
 		return errors.Wrap(err, "creating complete file in init container")
 	}
 
-	log.Info("Finished copying build context.")
+	logrus.Info("Finished copying build context.")
 	return nil
 }
