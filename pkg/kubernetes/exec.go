@@ -26,6 +26,7 @@ import (
 	"os"
 )
 
+//Exec contains all required information to execute a command in a container
 type Exec struct {
 	Namespace string
 	PodName   string
@@ -37,6 +38,7 @@ type Exec struct {
 	Stderr  io.Writer
 }
 
+//Exec executes a command in the specified container and opens a websocket stream if needed for Stdin
 func (e Exec) Exec(client *kubernetes.Clientset) error {
 	config, err := GetRestConfig()
 	if err != nil {
