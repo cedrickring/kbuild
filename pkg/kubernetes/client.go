@@ -21,12 +21,28 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" //auth for GKE clusters
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"path/filepath"
 )
 
 //GetClient creates a new kubernetes client with the kubeconfig at ~/.kube/config
 func GetClient() (*kubernetes.Clientset, error) {
+	config, err := GetRestConfig()
+	if err != nil {
+		return nil, errors.Wrap(err, "getting rest config")
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, errors.Wrap(err, "new clientset from config")
+	}
+
+	return clientset, nil
+}
+
+//GetRestConfig returns a new rest.Config based on the kubeconfig at ~/.kube/config
+func GetRestConfig() (*rest.Config, error) {
 	home := util.HomeDir()
 	if home == "" {
 		return nil, errors.New("Can't find kubeconfig at ~/.kube/config")
@@ -37,11 +53,5 @@ func GetClient() (*kubernetes.Clientset, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "build client config from flags")
 	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, errors.Wrap(err, "new clientset from config")
-	}
-
-	return clientset, nil
+	return config, nil
 }
