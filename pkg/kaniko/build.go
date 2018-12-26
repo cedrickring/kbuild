@@ -28,9 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8s "k8s.io/client-go/kubernetes"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 )
 
 //Build contains all required information to start a Kaniko build
@@ -155,30 +153,27 @@ func (b Build) copyTarIntoPod(clientset *k8s.Clientset, generatedPod *v1.Pod) er
 		return errors.Wrap(err, "wait for generatedPod initialized")
 	}
 
-	podTarPath := fmt.Sprintf("/tmp/%s", filepath.Base(b.tarPath))
-	localTarPath := b.tarPath
-	if runtime.GOOS == "windows" {
-		localTarPath = localTarPath[2:] //remove drive letter from path
-	}
+	log.Info("Copying build context into container...")
 	initContainerName := generatedPod.Spec.InitContainers[0].Name
 
-	log.Info("Copying build context into container...")
-
-	//kubectl cp <tar path> <generatedPod>:<path> -c <initcontainer> [-n <namespace>]
-	cp := exec.Command("kubectl", "cp", localTarPath, fmt.Sprintf("%s:%s", generatedPod.Name, podTarPath), "-c", initContainerName, "-n", b.Namespace)
-	if err := cp.Run(); err != nil {
+	tarCopy := kubernetes.Copy{
+		Namespace: b.Namespace,
+		PodName:   generatedPod.Name,
+		Container: initContainerName,
+		SrcPath:   b.tarPath,
+		DestPath:  constants.KanikoBuildContextPath,
+	}
+	if err := tarCopy.CopyFileIntoPod(clientset); err != nil {
 		return errors.Wrap(err, "copying tar into init container")
 	}
 
-	//kubectl exec <generatedPod> -c <initcontainer> [-n <namespace>] -- tar -zxf /tmp/<tar> -C /kaniko/build-context
-	tar := exec.Command("kubectl", "exec", generatedPod.Name, "-c", initContainerName, "-n", b.Namespace, "--", "tar", "-zxf", podTarPath, "-C", constants.KanikoBuildContextPath)
-	if err := tar.Run(); err != nil {
-		return errors.Wrap(err, "extracting tar in init container")
+	touch := kubernetes.Exec{
+		Namespace: b.Namespace,
+		PodName:   generatedPod.Name,
+		Container: initContainerName,
+		Command:   []string{"touch", "/tmp/complete"},
 	}
-
-	//kubectl exec <generatedPod> -c <initcontainer> [-n <namespace>] -- touch /tmp/complete
-	touch := exec.Command("kubectl", "exec", generatedPod.Name, "-c", initContainerName, "-n", b.Namespace, "--", "touch", "/tmp/complete")
-	if err := touch.Run(); err != nil {
+	if err := touch.Exec(clientset); err != nil {
 		return errors.Wrap(err, "creating complete file in init container")
 	}
 

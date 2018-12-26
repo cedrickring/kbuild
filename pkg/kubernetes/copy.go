@@ -32,7 +32,7 @@ type Copy struct {
 	DestPath  string
 }
 
-//CopyFileIntoPod copies the src file into the specified container
+//CopyFileIntoPod copies the src .tar.gz into the specified container
 func (c Copy) CopyFileIntoPod(client *kubernetes.Clientset) error {
 	if filepath.Ext(c.SrcPath) != ".gz" {
 		return errors.New("SrcPath must end with .gz")
