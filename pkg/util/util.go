@@ -14,30 +14,20 @@
    limitations under the License.
 */
 
-package utils
+package util
 
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/pkg/errors"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 )
 
-//GetDockerConfig reads the docker config located at ~/.docker/config.json
-func GetDockerConfig() ([]byte, error) {
-	home := homeDir()
-	if home == "" {
-		return nil, errors.New("Can't find docker config at ~/.docker/config.json")
+//HomeDir returns the %USERPROFILE% directory on windows or $HOME directory on Unix
+func HomeDir() string {
+	if h := os.Getenv("HOME"); h != "" { //unix
+		return h
 	}
-	dockerConfigPath := filepath.Join(home, ".docker", "config.json")
-
-	if _, err := os.Stat(dockerConfigPath); os.IsNotExist(err) {
-		return nil, errors.New("Can't find docker config at ~/.docker/config.json")
-	}
-
-	return ioutil.ReadFile(dockerConfigPath)
+	return os.Getenv("USERPROFILE") //windows
 }
 
 //RandomID creates a 32 character random ID

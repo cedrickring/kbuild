@@ -19,7 +19,7 @@ package kaniko
 import (
 	"bufio"
 	"fmt"
-	"github.com/cedrickring/kbuild/pkg/utils/constants"
+	"github.com/cedrickring/kbuild/pkg/constants"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"sync"
