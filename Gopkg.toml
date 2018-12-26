@@ -24,10 +24,6 @@ required = [
   version = "kubernetes-1.12.3"
 
 [[constraint]]
-  name = "github.com/logrusorgru/aurora"
-  revision = "a7b3b318ed4e1ae5b80602b08627267303c68572"
-
-[[constraint]]
   name = "github.com/google/go-containerregistry"
   revision = "02948caff2f67a31b8f548c412d5b9d0a46bf11d"
 

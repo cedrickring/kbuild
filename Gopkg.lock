@@ -159,13 +159,6 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:be40f095cd741773905744f16c1f7a21fd9226ccd0529f019deb7da6d667f71c"
-  name = "github.com/logrusorgru/aurora"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "a7b3b318ed4e1ae5b80602b08627267303c68572"
-
-[[projects]]
   digest = "1:c64de1a9bb86a05b9465b831472a19de968228c41fee9bb130d80f8d346a5517"
   name = "github.com/moby/buildkit"
   packages = [
@@ -509,10 +502,10 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Sirupsen/logrus",
     "github.com/docker/docker/builder/dockerignore",
     "github.com/docker/docker/pkg/fileutils",
     "github.com/google/go-containerregistry/pkg/name",
-    "github.com/logrusorgru/aurora",
     "github.com/moby/buildkit/frontend/dockerfile/command",
     "github.com/moby/buildkit/frontend/dockerfile/parser",
     "github.com/moby/buildkit/frontend/dockerfile/shell",
