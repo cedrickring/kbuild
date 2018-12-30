@@ -80,6 +80,7 @@ func GetCredentialsFromConfig() ([]byte, error) {
 	return ioutil.ReadFile(dockerConfigPath)
 }
 
+//GetCredentialsAsConfigMap creates a new v1.ConfigMap with the provided credentials
 func GetCredentialsAsConfigMap(credentials []byte) *v1.ConfigMap {
 	return &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
