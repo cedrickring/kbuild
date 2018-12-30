@@ -42,6 +42,7 @@ func (c Copy) CopyFileIntoPod(client *kubernetes.Clientset) error {
 	if err != nil {
 		return errors.Wrap(err, "opening tar file")
 	}
+	defer f.Close()
 
 	tarCmd := []string{"tar", "-zxf", "-", "-C", c.DestPath}
 
