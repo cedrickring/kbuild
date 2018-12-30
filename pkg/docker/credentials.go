@@ -33,15 +33,17 @@ import (
 )
 
 type dockerConfig struct {
-	Auths map[string]Auth `json:"auths"`
+	Auths map[string]auth `json:"auths"`
 }
 
-type Auth struct {
+type auth struct {
 	Auth string `json:"auth"`
 }
 
 var registryRegex, _ = regexp.Compile("^((.*)\\.)?(.*)\\.(.*)/")
 
+//GuessRegistryFromTag guesses the container registry based on the provided image tag.
+//Defaults to the index.docker.io registry
 func GuessRegistryFromTag(imageTag string) string {
 	if registryRegex.MatchString(imageTag) {
 		return imageTag[:strings.Index(imageTag, "/")]
@@ -50,12 +52,13 @@ func GuessRegistryFromTag(imageTag string) string {
 	return "https://index.docker.io/v1/"
 }
 
+//GetCredentialsFromFlags creates a dockerconfig "auths" object containing the provided credentials
 func GetCredentialsFromFlags(username, password, registry string) ([]byte, error) {
-	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+	encoded := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
 
 	config := dockerConfig{
-		Auths: map[string]Auth{
-			registry: {Auth: auth},
+		Auths: map[string]auth{
+			registry: {Auth: encoded},
 		},
 	}
 
