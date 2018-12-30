@@ -18,10 +18,12 @@ package main
 
 import (
 	"github.com/Sirupsen/logrus"
+	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 )
@@ -34,6 +36,8 @@ var (
 	imageTags  []string
 	buildArgs  []string
 	useCache   bool
+	username   string
+	password   string
 )
 
 func main() {
@@ -47,6 +51,8 @@ func main() {
 	rootCmd.Flags().StringVarP(&workingDir, "workdir", "w", ".", "Working directory")
 	rootCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "The namespace to run the build in")
 	rootCmd.Flags().StringVarP(&cacheRepo, "cache-repo", "", "", "Repository for cached images (see --cache)")
+	rootCmd.Flags().StringVarP(&username, "username", "u", "", "Docker Registry username")
+	rootCmd.Flags().StringVarP(&password, "password", "p", "", "Docker Registry password")
 	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
 	rootCmd.Flags().StringSliceVarP(&buildArgs, "build-arg", "", nil, "Optional build arguments (ARG)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
@@ -59,14 +65,18 @@ func run(_ *cobra.Command, _ []string) {
 	setupLogrus()
 
 	if err := validateImageTags(); err != nil {
-		logrus.Error(err)
-		os.Exit(1)
+		logrus.Fatal(err)
 		return
 	}
 
 	if err := checkForDockerfile(); err != nil {
-		logrus.Error(err)
-		os.Exit(1)
+		logrus.Fatal(err)
+		return
+	}
+
+	credentialsMap, err := getCredentialsConfigMap()
+	if err != nil {
+		logrus.Fatal(err)
 		return
 	}
 
@@ -87,15 +97,15 @@ func run(_ *cobra.Command, _ []string) {
 		CacheRepo:      cacheRepo,
 		Namespace:      namespace,
 		BuildArgs:      buildArgs,
+		CredentialsMap: credentialsMap,
 	}
-	err := b.StartBuild()
+	err = b.StartBuild()
 	if err != nil {
 		if err == kaniko.ErrorBuildFailed {
-			logrus.Error("Build failed.")
+			logrus.Fatal("Build failed.")
 		} else {
-			logrus.Error(err)
+			logrus.Fatal(err)
 		}
-		os.Exit(1)
 	}
 }
 
@@ -121,4 +131,28 @@ func setupLogrus() {
 		ForceColors: true,
 	})
 	logrus.SetOutput(os.Stdout)
+}
+
+func getCredentialsConfigMap() (*v1.ConfigMap, error) {
+	var credentials []byte
+
+	//check if credentials have been provided by flags
+	if username != "" && password != "" {
+		logrus.Infoln("Using credentials from flags")
+		registry := docker.GuessRegistryFromTag(imageTags[0])
+		creds, err := docker.GetCredentialsFromFlags(username, password, registry)
+		if err != nil {
+			return nil, errors.Wrap(err, "getting credentials from flags")
+		}
+		credentials = creds
+	} else { //otherwise read ~/.docker/config.json
+		logrus.Infoln("Using credentials from ~/.docker/config.json")
+		creds, err := docker.GetCredentialsFromConfig()
+		if err != nil {
+			return nil, errors.Wrap(err, "getting credentials from config")
+		}
+		credentials = creds
+	}
+
+	return docker.GetCredentialsAsConfigMap(credentials), nil
 }

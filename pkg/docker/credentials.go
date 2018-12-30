@@ -17,6 +17,9 @@
 package docker
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/util"
 	"github.com/pkg/errors"
@@ -25,30 +28,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
-//GetConfigAsConfigMap gets the local .docker/config.json in a ConfigMap
-func GetConfigAsConfigMap() (*v1.ConfigMap, error) {
-	config, err := GetConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.ConfigMapName,
-			Labels: map[string]string{
-				"builder": "kaniko",
-			},
-		},
-		Data: map[string]string{
-			"config.json": string(config),
-		},
-	}, nil
+type dockerConfig struct {
+	Auths map[string]Auth `json:"auths"`
 }
 
-//GetConfig reads the docker config located at ~/.docker/config.json
-func GetConfig() ([]byte, error) {
+type Auth struct {
+	Auth string `json:"auth"`
+}
+
+var registryRegex, _ = regexp.Compile("^((.*)\\.)?(.*)\\.(.*)/")
+
+func GuessRegistryFromTag(imageTag string) string {
+	if registryRegex.MatchString(imageTag) {
+		return imageTag[:strings.Index(imageTag, "/")]
+	}
+
+	return "https://index.docker.io/v1/"
+}
+
+func GetCredentialsFromFlags(username, password, registry string) ([]byte, error) {
+	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+
+	config := dockerConfig{
+		Auths: map[string]Auth{
+			registry: {Auth: auth},
+		},
+	}
+
+	return json.Marshal(config)
+}
+
+//GetCredentialsFromConfig reads the docker config located at ~/.docker/config.json
+func GetCredentialsFromConfig() ([]byte, error) {
 	home := util.HomeDir()
 	if home == "" {
 		return nil, errors.New("Can't find docker config at ~/.docker/config.json")
@@ -60,4 +75,18 @@ func GetConfig() ([]byte, error) {
 	}
 
 	return ioutil.ReadFile(dockerConfigPath)
+}
+
+func GetCredentialsAsConfigMap(credentials []byte) *v1.ConfigMap {
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constants.ConfigMapName,
+			Labels: map[string]string{
+				"builder": "kaniko",
+			},
+		},
+		Data: map[string]string{
+			"config.json": string(credentials),
+		},
+	}
 }
