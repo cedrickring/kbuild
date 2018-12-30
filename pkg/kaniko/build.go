@@ -40,6 +40,7 @@ type Build struct {
 	CacheRepo      string
 	Namespace      string
 	BuildArgs      []string
+	CredentialsMap *v1.ConfigMap
 
 	tarPath string
 }
@@ -104,21 +105,16 @@ func (b Build) StartBuild() error {
 }
 
 func (b Build) checkForConfigMap(client *k8s.Clientset) error {
-	configMap, err := docker.GetConfigAsConfigMap()
-	if err != nil {
-		return errors.Wrap(err, "get docker config as ConfigMap")
-	}
-
 	configMaps := client.CoreV1().ConfigMaps(b.Namespace)
 
-	_, err = configMaps.Get(configMap.Name, metav1.GetOptions{})
+	_, err := configMaps.Get(b.CredentialsMap.Name, metav1.GetOptions{})
 	if err != nil { //configmap is not present
-		_, err = configMaps.Create(configMap) //so we create a new one
+		_, err = configMaps.Create(b.CredentialsMap) //so we create a new one
 		if err != nil {
 			return errors.Wrap(err, "creating configmap")
 		}
 	} else {
-		_, err := configMaps.Update(configMap) //otherwise update the existing configmap
+		_, err := configMaps.Update(b.CredentialsMap) //otherwise update the existing configmap
 		if err != nil {
 			return errors.Wrap(err, "updating configmap")
 		}
