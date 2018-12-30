@@ -68,6 +68,15 @@ Specify namespace for the builder to run in (defaults to "default" namespace)
 
 This flag allows you to pass in build args (ARG) for the Kaniko executor
 
+### Registry credentials
+
+You can either have your Docker Container Registry credentials in your `~/.docker/config.json` or provide them with the
+`--username` (`-u`) and `--password` (`-p`) flags.
+
+When using the cli flags, the container registry url is guessed based on the first provided image tag.
+e.g. `-t my.registry.com/tag` is guessed as `my.registry.com`. If no specific registry is provided in the tag, it defaults to
+`https://index.docker.io/v1/`.
+
 ### How does kbuild work?
 
 In order to use the local context, the context needs to be tar-ed, copied to an Init Container, which shares an
