@@ -1,9 +1,9 @@
 workflow "Run all tests" {
   on = "push"
-  resolves = ["Run tests"]
+  resolves = ["cedrickring/golang-action@master"]
 }
 
-action "Run tests" {
-  uses = "docker://golang"
-  runs = "pwd"
+action "cedrickring/golang-action@master" {
+  uses = "cedrickring/golang-action@master"
+  args = "build -o test cmd/kbuild.go"
 }
