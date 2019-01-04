@@ -5,5 +5,5 @@ workflow "Run all tests" {
 
 action "cedrickring/golang-action@master" {
   uses = "cedrickring/golang-action@master"
-  args = "build -o test cmd/kbuild.go"
+  args = "version"
 }
