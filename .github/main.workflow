@@ -4,6 +4,6 @@ workflow "Run all tests" {
 }
 
 action "Run all checks" {
-  uses = "cedrickring/golang-action@master"
+  uses = "cedrickring/golang-action@1.0.0"
   args = "make"
 }
