@@ -1,9 +1,9 @@
-workflow "Run all tests" {
+workflow "kbuild CI" {
   on = "push"
-  resolves = ["Run tests"]
+  resolves = ["Run all checks"]
 }
 
-action "Run tests" {
-  uses = "docker://golang"
-  runs = "make"
+action "Run all checks" {
+  uses = "cedrickring/golang-action@1.0.0"
+  args = "make"
 }
