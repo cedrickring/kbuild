@@ -1,9 +1,9 @@
 workflow "Run all tests" {
   on = "push"
-  resolves = ["cedrickring/golang-action@master"]
+  resolves = ["Run all checks"]
 }
 
-action "cedrickring/golang-action@master" {
+action "Run all checks" {
   uses = "cedrickring/golang-action@master"
   args = "make"
 }
