@@ -5,5 +5,5 @@ workflow "Run all tests" {
 
 action "Run tests" {
   uses = "docker://golang"
-  runs = "make"
+  runs = "ls"
 }
