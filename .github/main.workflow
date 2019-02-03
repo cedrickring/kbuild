@@ -4,6 +4,5 @@ workflow "kbuild CI" {
 }
 
 action "Run all checks" {
-  uses = "cedrickring/golang-action@1.0.0"
-  args = "make"
+  uses = "cedrickring/golang-action@1.1.0"
 }
