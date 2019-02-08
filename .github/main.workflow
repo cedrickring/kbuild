@@ -8,8 +8,8 @@ action "Run all checks" {
 }
 
 workflow "Upload all artifacts" {
-  on = "release"
   resolves = ["Upload darwin release", "Upload linux release", "Upload windows release"]
+  on = "push"
 }
 
 action "Build all binaries" {
@@ -18,7 +18,7 @@ action "Build all binaries" {
 }
 
 action "Test" {
-  uses = "docker://alpine",
+  uses = "docker://alpine"
   needs = ["Build all binaries"]
   args = "ls -la"
 }
