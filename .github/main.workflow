@@ -17,29 +17,29 @@ action "Build all binaries" {
   args = "make build-all"
 }
 
-action "Test" {
+action "cd into out directory" {
   uses = "docker://alpine"
   needs = ["Build all binaries"]
-  args = "ls -la"
+  args = "cd out"
 }
 
 action "Upload darwin release" {
   uses = "JasonEtco/upload-to-release@master"
-  needs = ["Test"]
   args = "kbuild_darwin_amd64"
   secrets = ["GITHUB_TOKEN"]
+  needs = ["cd into out directory"]
 }
 
 action "Upload linux release" {
   uses = "JasonEtco/upload-to-release@master"
-  needs = ["Test"]
   args = "kbuild_linux_amd64"
   secrets = ["GITHUB_TOKEN"]
+  needs = ["cd into out directory"]
 }
 
 action "Upload windows release" {
   uses = "JasonEtco/upload-to-release@master"
-  needs = ["Test"]
   args = "kbuild_windows_amd64.exe"
   secrets = ["GITHUB_TOKEN"]
+  needs = ["cd into out directory"]
 }
