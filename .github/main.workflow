@@ -21,6 +21,7 @@ action "cd into out directory" {
   uses = "docker://alpine"
   needs = ["Build all binaries"]
   args = "cd out"
+  runs = "/bin/sh -c"
 }
 
 action "Upload darwin release" {
