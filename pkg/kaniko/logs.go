@@ -17,24 +17,26 @@
 package kaniko
 
 import (
-	"bufio"
+	"context"
 	"fmt"
 	"github.com/cedrickring/kbuild/pkg/constants"
+	"io"
 	"k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 //code used from github.com/GoogleContainerTools/skaffold
-func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func() {
+func (b Build) streamLogs(ctx context.Context, clientset *kubernetes.Clientset, podName string) func() {
 	pods := clientset.CoreV1().Pods(b.Namespace)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	var linesRead int32
+	var bytesRead int64
 	var retry int32 = 1
 
 	go func() {
@@ -44,21 +46,14 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 			readCloser, err := pods.GetLogs(podName, &v1.PodLogOptions{
 				Follow:    true,
 				Container: constants.KanikoContainerName,
-			}).Stream()
-
+			}).Context(ctx).Stream()
 			if err != nil {
 				time.Sleep(1 * time.Second) //pod is still initializing
 				continue
 			}
 
-			fmt.Println()
-			scanner := bufio.NewScanner(readCloser)
-			for scanner.Scan() {
-				atomic.AddInt32(&linesRead, 1)
-				fmt.Println(scanner.Text())
-			}
-			fmt.Println()
-			
+			written, _ := io.Copy(os.Stdout, readCloser)
+			atomic.AddInt64(&bytesRead, written)
 			return
 		}
 	}()
@@ -67,7 +62,7 @@ func (b Build) streamLogs(clientset *kubernetes.Clientset, podName string) func(
 		atomic.StoreInt32(&retry, 0)
 		wg.Wait()
 
-		if atomic.LoadInt32(&linesRead) == 0 {
+		if atomic.LoadInt64(&bytesRead) == 0 {
 			logs, err := pods.GetLogs(podName, &v1.PodLogOptions{
 				Container: constants.KanikoContainerName,
 			}).DoRaw()
