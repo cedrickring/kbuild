@@ -14,12 +14,13 @@
    limitations under the License.
 */
 
-package constants
+package source
 
-//Constants to be used in all packages
-const (
-	ConfigMapName          = "kaniko-configmap"
-	KanikoBuildContextPath = "/kaniko/build-context"
-	KanikoContainerName    = "kaniko-build"
-	GCSArgument            = "gcs"
-)
+import "k8s.io/api/core/v1"
+
+type Source interface {
+	PrepareCredentials() error
+	ModifyPod(pod *v1.Pod)
+	UploadTar(pod *v1.Pod, tarPath string) error
+	RequiresPod() bool
+}

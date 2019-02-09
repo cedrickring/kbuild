@@ -21,6 +21,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
+	"github.com/cedrickring/kbuild/pkg/kaniko/source"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -28,6 +29,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
@@ -64,7 +66,7 @@ func main() {
 	rootCmd.Execute()
 }
 
-func run(_ *cobra.Command, _ []string) {
+func run(_ *cobra.Command, args []string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	catchCtrlC(cancel)
@@ -87,6 +89,18 @@ func run(_ *cobra.Command, _ []string) {
 		return
 	}
 
+	var ctxSource source.Source
+	if len(args) > 0 {
+		switch strings.ToLower(args[0]) {
+		default:
+			logrus.WithField("arg", args[0]).Infoln("Using local build context source")
+			ctxSource = source.Local{
+				Namespace: namespace,
+				Ctx:       ctx,
+			}
+		}
+	}
+
 	cachingInfo := "Run-Step caching is %s."
 	if useCache {
 		logrus.Infof(cachingInfo, "enabled")
@@ -105,6 +119,7 @@ func run(_ *cobra.Command, _ []string) {
 		Namespace:      namespace,
 		BuildArgs:      buildArgs,
 		CredentialsMap: credentialsMap,
+		Source:         ctxSource,
 	}
 	err = b.StartBuild(ctx)
 	if err != nil {
@@ -144,7 +159,7 @@ func catchCtrlC(cancel context.CancelFunc) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGPIPE)
 	go func() {
-		<- signals
+		<-signals
 		cancel()
 	}()
 }

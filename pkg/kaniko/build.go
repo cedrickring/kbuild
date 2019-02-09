@@ -20,8 +20,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/Sirupsen/logrus"
-	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
+	"github.com/cedrickring/kbuild/pkg/kaniko/source"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
 	"github.com/cedrickring/kbuild/pkg/util"
 	"github.com/pkg/errors"
@@ -43,6 +43,7 @@ type Build struct {
 	Namespace      string
 	BuildArgs      []string
 	CredentialsMap *v1.ConfigMap
+	Source         source.Source
 
 	tarPath string
 }
@@ -69,8 +70,21 @@ func (b Build) StartBuild(ctx context.Context) error {
 	}
 	defer cleanup()
 
+	pod := b.getKanikoPod()
+	b.Source.ModifyPod(pod)
+
+	if err := b.Source.PrepareCredentials(); err != nil {
+		return errors.Wrap(err, "preparing credentials")
+	}
+
+	if !b.Source.RequiresPod() {
+		if err := b.Source.UploadTar(pod, b.tarPath); err != nil {
+			return errors.Wrap(err, "uploading tar")
+		}
+	}
+
 	pods := client.CoreV1().Pods(b.Namespace)
-	pod, err := pods.Create(b.getKanikoPod())
+	pod, err = pods.Create(pod)
 	if err != nil {
 		return errors.Wrap(err, "creating kaniko pod")
 	}
@@ -84,9 +98,10 @@ func (b Build) StartBuild(ctx context.Context) error {
 		}
 	}()
 
-	err = b.copyTarIntoPod(ctx, client, pod)
-	if err != nil {
-		return errors.Wrap(err, "copying context into pod")
+	if b.Source.RequiresPod() {
+		if err := b.Source.UploadTar(pod, b.tarPath); err != nil {
+			return errors.Wrap(err, "uploading tar")
+		}
 	}
 
 	logrus.Info("Starting build...")
@@ -146,7 +161,7 @@ func (b *Build) generateContext() (func(), error) {
 
 	file, err := os.Create(b.tarPath)
 	if err != nil {
-		panic(err)
+		return nil, errors.Wrap(err, "creating tar file")
 	}
 	defer file.Close()
 
@@ -160,37 +175,4 @@ func (b *Build) generateContext() (func(), error) {
 			logrus.Error(err)
 		}
 	}, nil
-}
-
-func (b Build) copyTarIntoPod(ctx context.Context, clientset *k8s.Clientset, generatedPod *v1.Pod) error {
-	if err := kubernetes.WaitForPodInitialized(ctx, clientset, b.Namespace, generatedPod.Name); err != nil && err != wait.ErrWaitTimeout {
-		return errors.Wrap(err, "wait for generatedPod initialized")
-	}
-
-	logrus.Info("Copying build context into container...")
-	initContainerName := generatedPod.Spec.InitContainers[0].Name
-
-	tarCopy := kubernetes.Copy{
-		Namespace: b.Namespace,
-		PodName:   generatedPod.Name,
-		Container: initContainerName,
-		SrcPath:   b.tarPath,
-		DestPath:  constants.KanikoBuildContextPath,
-	}
-	if err := tarCopy.CopyFileIntoPod(clientset); err != nil {
-		return errors.Wrap(err, "copying tar into init container")
-	}
-
-	touch := kubernetes.Exec{
-		Namespace: b.Namespace,
-		PodName:   generatedPod.Name,
-		Container: initContainerName,
-		Command:   []string{"touch", "/tmp/complete"},
-	}
-	if err := touch.Exec(clientset); err != nil {
-		return errors.Wrap(err, "creating complete file in init container")
-	}
-
-	logrus.Info("Finished copying build context.")
-	return nil
 }
