@@ -17,6 +17,7 @@
 package kaniko
 
 import (
+	"context"
 	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/constants"
@@ -26,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	k8s "k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
@@ -49,18 +51,19 @@ type Build struct {
 var ErrorBuildFailed = errors.New("build failed")
 
 //StartBuild starts a Kaniko build with options provided in `Build`
-func (b Build) StartBuild() error {
+func (b Build) StartBuild(ctx context.Context) error {
 	client, err := kubernetes.GetClient()
 	if err != nil {
 		return errors.Wrap(err, "get kubernetes client")
 	}
 
-	err = b.checkForConfigMap(client)
+	cleanup, err := b.checkForConfigMap(client)
 	if err != nil {
 		return errors.Wrap(err, "check for config map")
 	}
+	defer cleanup()
 
-	cleanup, err := b.generateContext()
+	cleanup, err = b.generateContext()
 	if err != nil {
 		return err
 	}
@@ -81,46 +84,61 @@ func (b Build) StartBuild() error {
 		}
 	}()
 
-	err = b.copyTarIntoPod(client, pod)
+	err = b.copyTarIntoPod(ctx, client, pod)
 	if err != nil {
 		return errors.Wrap(err, "copying context into pod")
 	}
 
 	logrus.Info("Starting build...")
-	cancel := b.streamLogs(client, pod.Name)
+	cancel := b.streamLogs(ctx, client, pod.Name)
 
-	if err := kubernetes.WaitForPodComplete(client, b.Namespace, pod.Name); err != nil {
-		return errors.Wrap(err, "waiting for kaniko pod to complete")
+	finishChan := make(chan bool, 1)
+
+	go func() {
+		if err := kubernetes.WaitForPodComplete(ctx, client, b.Namespace, pod.Name, finishChan); err != nil && err != wait.ErrWaitTimeout {
+			logrus.Error(errors.Wrap(err, "waiting for kaniko pod to complete"))
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		logrus.Infoln("Build was cancelled")
+	case <-finishChan:
+		podStatus, err := pods.Get(pod.Name, metav1.GetOptions{})
+		if err == nil && podStatus.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" { //build container exited with a non 0 code
+			return ErrorBuildFailed
+		}
+
+		logrus.Info("Build succeeded.")
 	}
 
 	cancel() //stop streaming logs
 
-	podStatus, err := pods.Get(pod.Name, metav1.GetOptions{})
-	if err == nil && podStatus.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" { //build container exited with a non 0 code
-		return ErrorBuildFailed
-	}
-
-	logrus.Info("Build succeeded.")
 	return nil
 }
 
-func (b Build) checkForConfigMap(client *k8s.Clientset) error {
+func (b Build) checkForConfigMap(client *k8s.Clientset) (func(), error) {
 	configMaps := client.CoreV1().ConfigMaps(b.Namespace)
 
 	_, err := configMaps.Get(b.CredentialsMap.Name, metav1.GetOptions{})
 	if err != nil { //configmap is not present
 		_, err = configMaps.Create(b.CredentialsMap) //so we create a new one
 		if err != nil {
-			return errors.Wrap(err, "creating configmap")
+			return nil, errors.Wrap(err, "creating configmap")
 		}
 	} else {
 		_, err := configMaps.Update(b.CredentialsMap) //otherwise update the existing configmap
 		if err != nil {
-			return errors.Wrap(err, "updating configmap")
+			return nil, errors.Wrap(err, "updating configmap")
 		}
 	}
 
-	return nil
+	return func() {
+		logrus.Infoln("Deleting credentials map")
+		if err := configMaps.Delete(b.CredentialsMap.Name, &metav1.DeleteOptions{}); err != nil {
+			logrus.Error(errors.Wrap(err, "deleting credentials configmap"))
+		}
+	}, nil
 }
 
 func (b *Build) generateContext() (func(), error) {
@@ -144,8 +162,8 @@ func (b *Build) generateContext() (func(), error) {
 	}, nil
 }
 
-func (b Build) copyTarIntoPod(clientset *k8s.Clientset, generatedPod *v1.Pod) error {
-	if err := kubernetes.WaitForPodInitialized(clientset, b.Namespace, generatedPod.Name); err != nil {
+func (b Build) copyTarIntoPod(ctx context.Context, clientset *k8s.Clientset, generatedPod *v1.Pod) error {
+	if err := kubernetes.WaitForPodInitialized(ctx, clientset, b.Namespace, generatedPod.Name); err != nil && err != wait.ErrWaitTimeout {
 		return errors.Wrap(err, "wait for generatedPod initialized")
 	}
 

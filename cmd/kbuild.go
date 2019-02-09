@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
@@ -25,7 +26,9 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/api/core/v1"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 )
 
 var (
@@ -62,6 +65,10 @@ func main() {
 }
 
 func run(_ *cobra.Command, _ []string) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	catchCtrlC(cancel)
+
 	setupLogrus()
 
 	if err := validateImageTags(); err != nil {
@@ -99,7 +106,7 @@ func run(_ *cobra.Command, _ []string) {
 		BuildArgs:      buildArgs,
 		CredentialsMap: credentialsMap,
 	}
-	err = b.StartBuild()
+	err = b.StartBuild(ctx)
 	if err != nil {
 		if err == kaniko.ErrorBuildFailed {
 			logrus.Fatal("Build failed.")
@@ -131,6 +138,15 @@ func setupLogrus() {
 		ForceColors: true,
 	})
 	logrus.SetOutput(os.Stdout)
+}
+
+func catchCtrlC(cancel context.CancelFunc) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGPIPE)
+	go func() {
+		<- signals
+		cancel()
+	}()
 }
 
 func getCredentialsConfigMap() (*v1.ConfigMap, error) {
