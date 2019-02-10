@@ -104,6 +104,8 @@ func (b Build) StartBuild(ctx context.Context) error {
 		}
 	}
 
+	defer b.Source.Cleanup()
+
 	logrus.Info("Starting build...")
 	cancel := b.streamLogs(ctx, client, pod.Name)
 

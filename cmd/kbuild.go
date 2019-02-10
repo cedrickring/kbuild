@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"github.com/Sirupsen/logrus"
+	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
 	"github.com/cedrickring/kbuild/pkg/kaniko/source"
@@ -43,6 +44,7 @@ var (
 	useCache   bool
 	username   string
 	password   string
+	gcsBucket  string
 )
 
 func main() {
@@ -61,6 +63,7 @@ func main() {
 	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
 	rootCmd.Flags().StringSliceVarP(&buildArgs, "build-arg", "", nil, "Optional build arguments (ARG)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
+	rootCmd.Flags().StringVarP(&gcsBucket, "bucket", "b", "", "The bucket to upload the context to")
 	rootCmd.MarkFlagRequired("tag")
 
 	rootCmd.Execute()
@@ -92,8 +95,19 @@ func run(_ *cobra.Command, args []string) {
 	var ctxSource source.Source
 	if len(args) > 0 {
 		switch strings.ToLower(args[0]) {
+		case constants.GCSArgument:
+			if gcsBucket == "" {
+				logrus.Fatal("Please provide a bucket name via --bucket when using gcs")
+				return
+			}
+			logrus.Infoln("Using gcs build context source")
+			ctxSource = &source.GCS{
+				Ctx:       ctx,
+				Namespace: namespace,
+				Bucket:    gcsBucket,
+			}
 		default:
-			logrus.WithField("arg", args[0]).Infoln("Using local build context source")
+			logrus.Infoln("Using local build context source")
 			ctxSource = source.Local{
 				Namespace: namespace,
 				Ctx:       ctx,

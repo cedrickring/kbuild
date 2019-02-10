@@ -22,5 +22,6 @@ type Source interface {
 	PrepareCredentials() error
 	ModifyPod(pod *v1.Pod)
 	UploadTar(pod *v1.Pod, tarPath string) error
+	Cleanup()
 	RequiresPod() bool
 }

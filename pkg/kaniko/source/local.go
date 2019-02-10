@@ -18,7 +18,6 @@ package source
 
 import (
 	"context"
-	"fmt"
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
@@ -30,6 +29,9 @@ import (
 type Local struct {
 	Ctx       context.Context
 	Namespace string
+}
+
+func (Local) Cleanup() {
 }
 
 func (Local) RequiresPod() bool {
@@ -76,8 +78,6 @@ func (Local) ModifyPod(pod *v1.Pod) {
 			EmptyDir: &v1.EmptyDirVolumeSource{},
 		},
 	})
-
-	fmt.Println(pod.Spec.Volumes)
 }
 
 func (l Local) UploadTar(pod *v1.Pod, tarPath string) error {
@@ -86,7 +86,6 @@ func (l Local) UploadTar(pod *v1.Pod, tarPath string) error {
 		return errors.Wrap(err, "getting kubernetes client")
 	}
 
-	fmt.Println(pod.Name)
 	if err := kubernetes.WaitForPodInitialized(l.Ctx, client, l.Namespace, pod.Name); err != nil && err != wait.ErrWaitTimeout {
 		return errors.Wrap(err, "wait for pod initialized")
 	}
