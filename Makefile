@@ -1,4 +1,4 @@
-all: deps fmt vet imports lint test build
+all: deps fmt vet lint test build
 
 build:
 	mkdir -p bin
