@@ -68,6 +68,10 @@ Specify namespace for the builder to run in (defaults to "default" namespace)
 
 This flag allows you to pass in build args (ARG) for the Kaniko executor
 
+#### --bucket
+
+The bucket to use for [Google Cloud Storage](#google-cloud-storage)
+
 ### Registry credentials
 
 You can either have your Docker Container Registry credentials in your `~/.docker/config.json` or provide them with the
@@ -76,6 +80,13 @@ You can either have your Docker Container Registry credentials in your `~/.docke
 When using the cli flags, the container registry url is guessed based on the first provided image tag.
 e.g. `-t my.registry.com/tag` is guessed as `my.registry.com`. If no specific registry is provided in the tag, it defaults to
 `https://index.docker.io/v1/`.
+
+### Google Cloud Storage 
+
+If you want to use the Google Cloud Storage to store your build context, you just have to pass `gcs` as the first argument to kbuild,
+and specify the `--bucket` to use.
+
+Example: `kbuild -t image:tag --bucket mybucket gcs`
 
 ### How does kbuild work?
 
