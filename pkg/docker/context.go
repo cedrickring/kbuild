@@ -80,7 +80,7 @@ func CreateContextFromWorkingDir(workDir, dockerfile string, w io.Writer, buildA
 				if err != nil {
 					return errors.Wrap(err, "creating tar file info header")
 				}
-				header.Name = strings.Replace(rel, "\\", "/", -1)
+				header.Name = filepath.ToSlash(rel)
 
 				return copyFile(header, p, tw)
 			})
@@ -105,7 +105,7 @@ func CreateContextFromWorkingDir(workDir, dockerfile string, w io.Writer, buildA
 			if err != nil {
 				return errors.Wrap(err, "creating tar file info header")
 			}
-			header.Name = strings.Replace(rel, "\\", "/", -1)
+			header.Name = filepath.ToSlash(rel)
 
 			if err := copyFile(header, path, tw); err != nil {
 				return err
