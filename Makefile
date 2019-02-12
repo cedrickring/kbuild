@@ -1,8 +1,5 @@
 all: deps fmt vet imports lint test build
 
-deps:
-	go get github.com/golang/lint/golint
-
 build:
 	mkdir -p bin
 	go build -o bin/kbuild ./cmd/kbuild.go
@@ -16,7 +13,6 @@ vet:
 imports:
 	go get golang.org/x/tools/cmd/goimports
 	goimports -w ./pkg/* ./cmd/*
-
 
 lint: require-gopath
 	bash scripts/install_golangci-lint.sh
