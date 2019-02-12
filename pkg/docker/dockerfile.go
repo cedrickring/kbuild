@@ -18,16 +18,19 @@ package docker
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
+
+var urlRegex = regexp.MustCompile("^https?://(.*)")
 
 //GetFilePaths returns all paths required to build the docker image
 func GetFilePaths(workDir, dockerfile string, buildArgs []string) ([]string, error) {
@@ -91,7 +94,7 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string, bui
 
 	lex := shell.NewLex(rune('\\'))
 	for node = node.Next; node.Next != nil; node = node.Next {
-		if match, err := regexp.MatchString("^https?://(.*)", node.Value); err != nil || match {
+		if match := urlRegex.MatchString(node.Value); match {
 			logrus.Infof("Skipping external dependency %s", node.Value)
 			continue //skip external dependencies
 		}

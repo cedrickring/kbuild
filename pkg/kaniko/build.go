@@ -19,18 +19,19 @@ package kaniko
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko/source"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
 	"github.com/cedrickring/kbuild/pkg/util"
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8s "k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 )
 
 //Build contains all required information to start a Kaniko build

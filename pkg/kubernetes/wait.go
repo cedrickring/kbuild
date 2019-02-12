@@ -18,11 +18,12 @@ package kubernetes
 
 import (
 	"context"
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 //WaitForPodInitialized waits for a specific pod to be initialized

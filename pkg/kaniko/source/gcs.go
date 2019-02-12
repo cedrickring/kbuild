@@ -17,18 +17,19 @@
 package source
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"cloud.google.com/go/storage"
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
 	"github.com/pkg/errors"
-	"io"
-	"io/ioutil"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"path/filepath"
 )
 
 const credentialsSecretName = "kaniko-gcs-secret"

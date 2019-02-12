@@ -19,13 +19,14 @@ package docker
 import (
 	"archive/tar"
 	"compress/gzip"
-	"github.com/docker/docker/builder/dockerignore"
-	"github.com/docker/docker/pkg/fileutils"
-	"github.com/pkg/errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/docker/docker/builder/dockerignore"
+	"github.com/docker/docker/pkg/fileutils"
+	"github.com/pkg/errors"
 )
 
 //CreateContextFromWorkingDir creates a build context of the provided directory and writes it to the Writer
@@ -57,7 +58,7 @@ func CreateContextFromWorkingDir(workDir, dockerfile string, w io.Writer, buildA
 		}
 
 		if info.IsDir() {
-			err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+			err := filepath.Walk(path, func(p string, info os.FileInfo, walkErr error) error {
 				if p == path {
 					return nil
 				}

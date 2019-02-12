@@ -17,10 +17,11 @@
 package kubernetes
 
 import (
-	"github.com/pkg/errors"
-	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
+
+	"github.com/pkg/errors"
+	"k8s.io/client-go/kubernetes"
 )
 
 //Copy contains all required information to copy a file into a pod
