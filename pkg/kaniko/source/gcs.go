@@ -33,6 +33,7 @@ import (
 
 const credentialsSecretName = "kaniko-gcs-secret"
 
+//GCS represents a google cloud storage build context
 type GCS struct {
 	Namespace string
 	Bucket    string
@@ -41,6 +42,7 @@ type GCS struct {
 	tar string
 }
 
+//Cleanup removes the context from the gcs bucket and removes the gcs secret from the cluster
 func (g GCS) Cleanup() {
 	client, err := storage.NewClient(context.Background())
 	if err != nil {
@@ -63,6 +65,8 @@ func (g GCS) Cleanup() {
 	}
 }
 
+//PrepareCredentials creates a v1.Secret with the contents of the Service Account JSON
+//found at GOOGLE_APPLICATION_CREDENTIALS
 func (g GCS) PrepareCredentials() error {
 	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	if credsPath == "" {
@@ -98,6 +102,7 @@ func (g GCS) PrepareCredentials() error {
 	return nil
 }
 
+//ModifyPod adds the gcs secret as a volume to the pod to access the bucket from Kaniko
 func (g GCS) ModifyPod(pod *v1.Pod) {
 	//Mount gcs secret as volume
 	pod.Spec.Volumes = append(pod.Spec.Volumes, v1.Volume{
@@ -122,6 +127,7 @@ func (g GCS) ModifyPod(pod *v1.Pod) {
 	})
 }
 
+//UploadTar uploads the build context to the specified gcs bucket
 func (g *GCS) UploadTar(pod *v1.Pod, tarPath string) error {
 	client, err := storage.NewClient(g.Ctx)
 	if err != nil {
@@ -149,6 +155,7 @@ func (g *GCS) UploadTar(pod *v1.Pod, tarPath string) error {
 	return nil
 }
 
+//RequiresPod always returns false as the pod should not be started before the context is uploaded
 func (GCS) RequiresPod() bool {
 	return false
 }

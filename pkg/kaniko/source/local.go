@@ -26,22 +26,27 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+//Local represents a local build context which gets uploaded to an init container
 type Local struct {
 	Ctx       context.Context
 	Namespace string
 }
 
+//Cleanup not needed here
 func (Local) Cleanup() {
 }
 
+//RequiresPod returns always true, since the init pod is required to upload the context
 func (Local) RequiresPod() bool {
 	return true
 }
 
+//PrepareCredentials not needed here
 func (l Local) PrepareCredentials() error {
 	return nil
 }
 
+//ModifyPod adds an init container to the pod and an empty volume for the build context
 func (Local) ModifyPod(pod *v1.Pod) {
 	//Create init container
 	pod.Spec.InitContainers = []v1.Container{
@@ -80,6 +85,7 @@ func (Local) ModifyPod(pod *v1.Pod) {
 	})
 }
 
+//UploadTar uploads the context tar to the init container
 func (l Local) UploadTar(pod *v1.Pod, tarPath string) error {
 	client, err := kubernetes.GetClient()
 	if err != nil {

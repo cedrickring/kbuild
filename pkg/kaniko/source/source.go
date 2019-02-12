@@ -18,6 +18,7 @@ package source
 
 import "k8s.io/api/core/v1"
 
+//Source represents a build context source
 type Source interface {
 	PrepareCredentials() error
 	ModifyPod(pod *v1.Pod)
