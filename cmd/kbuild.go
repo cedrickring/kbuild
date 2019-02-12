@@ -18,6 +18,12 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"syscall"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
@@ -26,12 +32,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/api/core/v1"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"syscall"
+	v1 "k8s.io/api/core/v1"
 )
 
 var (

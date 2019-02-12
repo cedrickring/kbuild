@@ -18,11 +18,12 @@ package source
 
 import (
 	"context"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

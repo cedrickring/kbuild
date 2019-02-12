@@ -19,14 +19,15 @@ package kaniko
 import (
 	"context"
 	"fmt"
-	"github.com/cedrickring/kbuild/pkg/constants"
 	"io"
-	"k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/cedrickring/kbuild/pkg/constants"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 //code used from github.com/GoogleContainerTools/skaffold
