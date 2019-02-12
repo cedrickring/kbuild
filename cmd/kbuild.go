@@ -19,8 +19,10 @@ package main
 import (
 	"context"
 	"github.com/Sirupsen/logrus"
+	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
+	"github.com/cedrickring/kbuild/pkg/kaniko/source"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -28,6 +30,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
@@ -41,6 +44,7 @@ var (
 	useCache   bool
 	username   string
 	password   string
+	gcsBucket  string
 )
 
 func main() {
@@ -59,12 +63,13 @@ func main() {
 	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
 	rootCmd.Flags().StringSliceVarP(&buildArgs, "build-arg", "", nil, "Optional build arguments (ARG)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
+	rootCmd.Flags().StringVarP(&gcsBucket, "bucket", "b", "", "The bucket to upload the context to")
 	rootCmd.MarkFlagRequired("tag")
 
 	rootCmd.Execute()
 }
 
-func run(_ *cobra.Command, _ []string) {
+func run(_ *cobra.Command, args []string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	catchCtrlC(cancel)
@@ -87,6 +92,29 @@ func run(_ *cobra.Command, _ []string) {
 		return
 	}
 
+	var ctxSource source.Source
+	if len(args) > 0 {
+		switch strings.ToLower(args[0]) {
+		case constants.GCSArgument:
+			if gcsBucket == "" {
+				logrus.Fatal("Please provide a bucket name via --bucket when using gcs")
+				return
+			}
+			logrus.Infoln("Using gcs build context source")
+			ctxSource = &source.GCS{
+				Ctx:       ctx,
+				Namespace: namespace,
+				Bucket:    gcsBucket,
+			}
+		default:
+			logrus.Infoln("Using local build context source")
+			ctxSource = source.Local{
+				Namespace: namespace,
+				Ctx:       ctx,
+			}
+		}
+	}
+
 	cachingInfo := "Run-Step caching is %s."
 	if useCache {
 		logrus.Infof(cachingInfo, "enabled")
@@ -105,6 +133,7 @@ func run(_ *cobra.Command, _ []string) {
 		Namespace:      namespace,
 		BuildArgs:      buildArgs,
 		CredentialsMap: credentialsMap,
+		Source:         ctxSource,
 	}
 	err = b.StartBuild(ctx)
 	if err != nil {
@@ -144,7 +173,7 @@ func catchCtrlC(cancel context.CancelFunc) {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGPIPE)
 	go func() {
-		<- signals
+		<-signals
 		cancel()
 	}()
 }

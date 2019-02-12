@@ -21,4 +21,5 @@ const (
 	ConfigMapName          = "kaniko-configmap"
 	KanikoBuildContextPath = "/kaniko/build-context"
 	KanikoContainerName    = "kaniko-build"
+	GCSArgument            = "gcs"
 )

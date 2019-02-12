@@ -33,39 +33,17 @@ func (b Build) getKanikoPod() *v1.Pod {
 			},
 		},
 		Spec: v1.PodSpec{
-			InitContainers: []v1.Container{
-				{
-					Name:  "kaniko-init",
-					Image: "alpine",
-					Args: []string{"sh", "-c",
-						`while true; do
-							sleep 1; if [ -f /tmp/complete ]; then break; fi
-						done`,
-					},
-					VolumeMounts: []v1.VolumeMount{
-						{
-							Name:      "build-context",
-							MountPath: constants.KanikoBuildContextPath,
-						},
-					},
-				},
-			},
 			Containers: []v1.Container{
 				{
 					Name:  constants.KanikoContainerName,
 					Image: "gcr.io/kaniko-project/executor",
 					Args: []string{
 						"--dockerfile=" + b.DockerfilePath,
-						"--context=dir:///kaniko/build-context",
 					},
 					VolumeMounts: []v1.VolumeMount{
 						{
 							Name:      "docker-config",
 							MountPath: "/kaniko/.docker",
-						},
-						{
-							Name:      "build-context",
-							MountPath: constants.KanikoBuildContextPath,
 						},
 					},
 				},
@@ -80,12 +58,6 @@ func (b Build) getKanikoPod() *v1.Pod {
 								Name: constants.ConfigMapName,
 							},
 						},
-					},
-				},
-				{
-					Name: "build-context",
-					VolumeSource: v1.VolumeSource{
-						EmptyDir: &v1.EmptyDirVolumeSource{},
 					},
 				},
 			},
