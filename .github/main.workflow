@@ -8,7 +8,12 @@ action "Run all checks" {
 }
 
 workflow "Upload all artifacts" {
-  resolves = ["Upload darwin release", "Upload linux release", "Upload windows release"]
+  resolves = [
+    "Upload darwin release",
+    "Upload linux release",
+    "Upload windows release",
+    "docker://alpine",
+  ]
   on = "push"
 }
 
@@ -35,5 +40,10 @@ action "Upload windows release" {
   uses = "JasonEtco/upload-to-release@master"
   args = "out/kbuild_windows_amd64.exe"
   secrets = ["GITHUB_TOKEN"]
+  needs = ["Build all binaries"]
+}
+
+action "docker://alpine" {
+  uses = "docker://alpine"
   needs = ["Build all binaries"]
 }
