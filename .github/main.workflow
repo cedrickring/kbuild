@@ -46,4 +46,6 @@ action "Upload windows release" {
 action "docker://alpine" {
   uses = "docker://alpine"
   needs = ["Build all binaries"]
+  runs = "/bin/sh -c"
+  args = "ls"
 }
