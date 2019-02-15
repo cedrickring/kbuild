@@ -20,16 +20,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/cedrickring/kbuild/pkg/constants"
-	"github.com/cedrickring/kbuild/pkg/util"
-	"github.com/pkg/errors"
 	"io/ioutil"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/cedrickring/kbuild/pkg/constants"
+	"github.com/cedrickring/kbuild/pkg/util"
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type dockerConfig struct {
@@ -40,7 +41,7 @@ type auth struct {
 	Auth string `json:"auth"`
 }
 
-var registryRegex, _ = regexp.Compile("^((.*)\\.)?(.*)\\.(.*)/")
+var registryRegex = regexp.MustCompile(`^((.*)\.)?(.*)\.(.*)/`)
 
 //GuessRegistryFromTag guesses the container registry based on the provided image tag.
 //Defaults to the index.docker.io registry

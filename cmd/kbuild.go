@@ -17,15 +17,22 @@
 package main
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"syscall"
+
 	"github.com/Sirupsen/logrus"
+	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
+	"github.com/cedrickring/kbuild/pkg/kaniko/source"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/api/core/v1"
-	"os"
-	"path/filepath"
+	v1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -38,6 +45,7 @@ var (
 	useCache   bool
 	username   string
 	password   string
+	gcsBucket  string
 )
 
 func main() {
@@ -56,12 +64,17 @@ func main() {
 	rootCmd.Flags().StringSliceVarP(&imageTags, "tag", "t", nil, "Final image tag(s) (required)")
 	rootCmd.Flags().StringSliceVarP(&buildArgs, "build-arg", "", nil, "Optional build arguments (ARG)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
+	rootCmd.Flags().StringVarP(&gcsBucket, "bucket", "b", "", "The bucket to upload the context to")
 	rootCmd.MarkFlagRequired("tag")
 
 	rootCmd.Execute()
 }
 
-func run(_ *cobra.Command, _ []string) {
+func run(_ *cobra.Command, args []string) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	catchCtrlC(cancel)
+
 	setupLogrus()
 
 	if err := validateImageTags(); err != nil {
@@ -78,6 +91,29 @@ func run(_ *cobra.Command, _ []string) {
 	if err != nil {
 		logrus.Fatal(err)
 		return
+	}
+
+	var ctxSource source.Source
+	if len(args) > 0 {
+		switch strings.ToLower(args[0]) {
+		case constants.GCSArgument:
+			if gcsBucket == "" {
+				logrus.Fatal("Please provide a bucket name via --bucket when using gcs")
+				return
+			}
+			logrus.Infoln("Using gcs build context source")
+			ctxSource = &source.GCS{
+				Ctx:       ctx,
+				Namespace: namespace,
+				Bucket:    gcsBucket,
+			}
+		default:
+			logrus.Infoln("Using local build context source")
+			ctxSource = source.Local{
+				Namespace: namespace,
+				Ctx:       ctx,
+			}
+		}
 	}
 
 	cachingInfo := "Run-Step caching is %s."
@@ -98,8 +134,9 @@ func run(_ *cobra.Command, _ []string) {
 		Namespace:      namespace,
 		BuildArgs:      buildArgs,
 		CredentialsMap: credentialsMap,
+		Source:         ctxSource,
 	}
-	err = b.StartBuild()
+	err = b.StartBuild(ctx)
 	if err != nil {
 		if err == kaniko.ErrorBuildFailed {
 			logrus.Fatal("Build failed.")
@@ -131,6 +168,15 @@ func setupLogrus() {
 		ForceColors: true,
 	})
 	logrus.SetOutput(os.Stdout)
+}
+
+func catchCtrlC(cancel context.CancelFunc) {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT, syscall.SIGPIPE)
+	go func() {
+		<-signals
+		cancel()
+	}()
 }
 
 func getCredentialsConfigMap() (*v1.ConfigMap, error) {

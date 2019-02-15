@@ -17,13 +17,14 @@
 package kubernetes
 
 import (
+	"path/filepath"
+
 	"github.com/cedrickring/kbuild/pkg/util"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" //auth for GKE clusters
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"path/filepath"
 )
 
 //GetClient creates a new kubernetes client with the kubeconfig at ~/.kube/config

@@ -18,20 +18,21 @@ package kubernetes
 
 import (
 	"context"
+	"time"
+
 	"github.com/Sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 //WaitForPodInitialized waits for a specific pod to be initialized
-func WaitForPodInitialized(clientset *kubernetes.Clientset, namespace, podName string) error {
+func WaitForPodInitialized(ctx context.Context, clientset *kubernetes.Clientset, namespace, podName string) error {
 	logrus.Infof("Waiting for pod %s to be initialized", podName)
 
 	pods := clientset.CoreV1().Pods(namespace)
 
-	ctx, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancelTimeout := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancelTimeout()
 
 	return wait.PollImmediateUntil(500*time.Millisecond, func() (done bool, err error) {
@@ -55,7 +56,7 @@ func WaitForPodInitialized(clientset *kubernetes.Clientset, namespace, podName s
 }
 
 //WaitForPodComplete waits for a specific pod to be in complete state
-func WaitForPodComplete(clientset *kubernetes.Clientset, namespace, podName string) error {
+func WaitForPodComplete(ctx context.Context, clientset *kubernetes.Clientset, namespace, podName string, finish chan bool) error {
 	pods := clientset.CoreV1().Pods(namespace)
 
 	return wait.PollImmediateUntil(500*time.Millisecond, func() (done bool, err error) {
@@ -70,10 +71,11 @@ func WaitForPodComplete(clientset *kubernetes.Clientset, namespace, podName stri
 
 		for _, init := range pod.Status.ContainerStatuses {
 			if init.State.Terminated != nil {
+				finish <- true
 				return true, nil
 			}
 		}
 
 		return false, nil
-	}, context.Background().Done())
+	}, ctx.Done())
 }

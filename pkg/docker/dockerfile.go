@@ -18,20 +18,23 @@ package docker
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
+
+var urlRegex = regexp.MustCompile("^https?://(.*)")
 
 //GetFilePaths returns all paths required to build the docker image
 func GetFilePaths(workDir, dockerfile string, buildArgs []string) ([]string, error) {
-	dfPath := strings.Replace(filepath.Join(workDir, dockerfile), "\\", "/", -1)
+	dfPath := filepath.ToSlash(filepath.Join(workDir, dockerfile))
 	f, err := os.Open(dfPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "opening dockerfile")
@@ -91,7 +94,7 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string, bui
 
 	lex := shell.NewLex(rune('\\'))
 	for node = node.Next; node.Next != nil; node = node.Next {
-		if match, err := regexp.MatchString("^https?://(.*)", node.Value); err != nil || match {
+		if match := urlRegex.MatchString(node.Value); match {
 			logrus.Infof("Skipping external dependency %s", node.Value)
 			continue //skip external dependencies
 		}
@@ -102,7 +105,7 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string, bui
 				return nil, err
 			}
 		}
-		abs := strings.Replace(filepath.Join(wd, node.Value), "\\", "/", -1) //need forward-slashes in windows so they don't get escaped by lex
+		abs := filepath.ToSlash(filepath.Join(wd, node.Value)) //need forward-slashes in windows so they don't get escaped by lex
 
 		for key, value := range buildArgs {
 			if _, ok := envVars[key]; ok {
@@ -137,7 +140,7 @@ func parseCopyOrAdd(wd string, node *parser.Node, envVars map[string]string, bui
 			if err != nil {
 				return nil, err
 			}
-			rel = strings.Replace(rel, "\\", "/", -1)
+			rel = filepath.ToSlash(rel)
 
 			relPaths = append(relPaths, rel)
 		}

@@ -17,18 +17,21 @@
 package kaniko
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/Sirupsen/logrus"
-	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
+	"github.com/cedrickring/kbuild/pkg/kaniko/source"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
 	"github.com/cedrickring/kbuild/pkg/util"
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	k8s "k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 )
 
 //Build contains all required information to start a Kaniko build
@@ -41,6 +44,7 @@ type Build struct {
 	Namespace      string
 	BuildArgs      []string
 	CredentialsMap *v1.ConfigMap
+	Source         source.Source
 
 	tarPath string
 }
@@ -49,25 +53,39 @@ type Build struct {
 var ErrorBuildFailed = errors.New("build failed")
 
 //StartBuild starts a Kaniko build with options provided in `Build`
-func (b Build) StartBuild() error {
+func (b Build) StartBuild(ctx context.Context) error {
 	client, err := kubernetes.GetClient()
 	if err != nil {
 		return errors.Wrap(err, "get kubernetes client")
 	}
 
-	err = b.checkForConfigMap(client)
+	cleanup, err := b.checkForConfigMap(client)
 	if err != nil {
 		return errors.Wrap(err, "check for config map")
 	}
+	defer cleanup()
 
-	cleanup, err := b.generateContext()
+	cleanup, err = b.generateContext()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 
+	pod := b.getKanikoPod()
+	b.Source.ModifyPod(pod)
+
+	if err := b.Source.PrepareCredentials(); err != nil {
+		return errors.Wrap(err, "preparing credentials")
+	}
+
+	if !b.Source.RequiresPod() {
+		if err := b.Source.UploadTar(pod, b.tarPath); err != nil {
+			return errors.Wrap(err, "uploading tar")
+		}
+	}
+
 	pods := client.CoreV1().Pods(b.Namespace)
-	pod, err := pods.Create(b.getKanikoPod())
+	pod, err = pods.Create(pod)
 	if err != nil {
 		return errors.Wrap(err, "creating kaniko pod")
 	}
@@ -81,46 +99,64 @@ func (b Build) StartBuild() error {
 		}
 	}()
 
-	err = b.copyTarIntoPod(client, pod)
-	if err != nil {
-		return errors.Wrap(err, "copying context into pod")
+	if b.Source.RequiresPod() {
+		if err := b.Source.UploadTar(pod, b.tarPath); err != nil {
+			return errors.Wrap(err, "uploading tar")
+		}
 	}
 
-	logrus.Info("Starting build...")
-	cancel := b.streamLogs(client, pod.Name)
+	defer b.Source.Cleanup()
 
-	if err := kubernetes.WaitForPodComplete(client, b.Namespace, pod.Name); err != nil {
-		return errors.Wrap(err, "waiting for kaniko pod to complete")
+	logrus.Info("Starting build...")
+	cancel := b.streamLogs(ctx, client, pod.Name)
+
+	finishChan := make(chan bool, 1)
+
+	go func() {
+		if err := kubernetes.WaitForPodComplete(ctx, client, b.Namespace, pod.Name, finishChan); err != nil && err != wait.ErrWaitTimeout {
+			logrus.Error(errors.Wrap(err, "waiting for kaniko pod to complete"))
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		logrus.Infoln("Build was cancelled")
+	case <-finishChan:
+		podStatus, err := pods.Get(pod.Name, metav1.GetOptions{})
+		if err == nil && podStatus.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" { //build container exited with a non 0 code
+			return ErrorBuildFailed
+		}
+
+		logrus.Info("Build succeeded.")
 	}
 
 	cancel() //stop streaming logs
 
-	podStatus, err := pods.Get(pod.Name, metav1.GetOptions{})
-	if err == nil && podStatus.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" { //build container exited with a non 0 code
-		return ErrorBuildFailed
-	}
-
-	logrus.Info("Build succeeded.")
 	return nil
 }
 
-func (b Build) checkForConfigMap(client *k8s.Clientset) error {
+func (b Build) checkForConfigMap(client *k8s.Clientset) (func(), error) {
 	configMaps := client.CoreV1().ConfigMaps(b.Namespace)
 
 	_, err := configMaps.Get(b.CredentialsMap.Name, metav1.GetOptions{})
 	if err != nil { //configmap is not present
 		_, err = configMaps.Create(b.CredentialsMap) //so we create a new one
 		if err != nil {
-			return errors.Wrap(err, "creating configmap")
+			return nil, errors.Wrap(err, "creating configmap")
 		}
 	} else {
 		_, err := configMaps.Update(b.CredentialsMap) //otherwise update the existing configmap
 		if err != nil {
-			return errors.Wrap(err, "updating configmap")
+			return nil, errors.Wrap(err, "updating configmap")
 		}
 	}
 
-	return nil
+	return func() {
+		logrus.Infoln("Deleting credentials map")
+		if err := configMaps.Delete(b.CredentialsMap.Name, &metav1.DeleteOptions{}); err != nil {
+			logrus.Error(errors.Wrap(err, "deleting credentials configmap"))
+		}
+	}, nil
 }
 
 func (b *Build) generateContext() (func(), error) {
@@ -128,7 +164,7 @@ func (b *Build) generateContext() (func(), error) {
 
 	file, err := os.Create(b.tarPath)
 	if err != nil {
-		panic(err)
+		return nil, errors.Wrap(err, "creating tar file")
 	}
 	defer file.Close()
 
@@ -142,37 +178,4 @@ func (b *Build) generateContext() (func(), error) {
 			logrus.Error(err)
 		}
 	}, nil
-}
-
-func (b Build) copyTarIntoPod(clientset *k8s.Clientset, generatedPod *v1.Pod) error {
-	if err := kubernetes.WaitForPodInitialized(clientset, b.Namespace, generatedPod.Name); err != nil {
-		return errors.Wrap(err, "wait for generatedPod initialized")
-	}
-
-	logrus.Info("Copying build context into container...")
-	initContainerName := generatedPod.Spec.InitContainers[0].Name
-
-	tarCopy := kubernetes.Copy{
-		Namespace: b.Namespace,
-		PodName:   generatedPod.Name,
-		Container: initContainerName,
-		SrcPath:   b.tarPath,
-		DestPath:  constants.KanikoBuildContextPath,
-	}
-	if err := tarCopy.CopyFileIntoPod(clientset); err != nil {
-		return errors.Wrap(err, "copying tar into init container")
-	}
-
-	touch := kubernetes.Exec{
-		Namespace: b.Namespace,
-		PodName:   generatedPod.Name,
-		Container: initContainerName,
-		Command:   []string{"touch", "/tmp/complete"},
-	}
-	if err := touch.Exec(clientset); err != nil {
-		return errors.Wrap(err, "creating complete file in init container")
-	}
-
-	logrus.Info("Finished copying build context.")
-	return nil
 }
