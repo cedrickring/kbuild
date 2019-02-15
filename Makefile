@@ -41,7 +41,7 @@ install: all
 build-all:
 	mkdir -p out && cd out
 	which gox || make gox
-	gox -arch="386 amd64" -os="darwin linux windows" --output "out/kbuild_{{.OS}}_{{.Arch}}" github.com/cedrickring/kbuild/cmd
+	gox -arch="amd64" -os="darwin linux windows" --output "out/kbuild_{{.OS}}_{{.Arch}}" github.com/cedrickring/kbuild/cmd
 
 require-gopath:
 ifndef GOPATH
