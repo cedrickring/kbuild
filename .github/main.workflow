@@ -11,8 +11,7 @@ workflow "Upload all artifacts" {
   resolves = [
     "Upload darwin release",
     "Upload linux release",
-    "Upload windows release",
-    "docker://alpine",
+    "Upload windows release"
   ]
   on = "push"
 }
@@ -50,10 +49,4 @@ action "Upload windows release" {
   env = {
     WORKING_DIRECTORY = "out"
   }
-}
-
-action "docker://alpine" {
-  uses = "docker://alpine"
-  needs = ["Build all binaries"]
-  args = "ls out"
 }
