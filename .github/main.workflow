@@ -13,7 +13,7 @@ workflow "Upload all artifacts" {
     "Upload linux release",
     "Upload windows release"
   ]
-  on = "push"
+  on = "release"
 }
 
 action "Build all binaries" {
