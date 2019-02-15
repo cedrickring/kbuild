@@ -12,6 +12,7 @@ workflow "Upload all artifacts" {
     "Upload darwin release",
     "Upload linux release",
     "Upload windows release",
+    "docker://alpine",
   ]
   on = "push"
 }
@@ -49,4 +50,11 @@ action "Upload windows release" {
   env = {
     WORKING_DIRECTORY = "out"
   }
+}
+
+action "docker://alpine" {
+  uses = "docker://alpine"
+  needs = ["Build all binaries"]
+  runs = "/bin/sh -c"
+  args = "ls out"
 }
