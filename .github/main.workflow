@@ -12,7 +12,6 @@ workflow "Upload all artifacts" {
     "Upload darwin release",
     "Upload linux release",
     "Upload windows release",
-    "docker://alpine",
   ]
   on = "push"
 }
@@ -23,29 +22,31 @@ action "Build all binaries" {
 }
 
 action "Upload darwin release" {
-  uses = "JasonEtco/upload-to-release@master"
-  args = "out/kbuild_darwin_amd64"
+  uses = "cedrickring/upload-to-release@master"
+  args = "kbuild_darwin_amd64 application/octet-stream"
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build all binaries"]
+  env = {
+    WORKING_DIRECTORY = "out"
+  }
 }
 
 action "Upload linux release" {
-  uses = "JasonEtco/upload-to-release@master"
-  args = "out/kbuild_linux_amd64"
+  uses = "cedrickring/upload-to-release@master"
+  args = "kbuild_linux_amd64 application/octet-stream"
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build all binaries"]
+  env = {
+    WORKING_DIRECTORY = "out"
+  }
 }
 
 action "Upload windows release" {
-  uses = "JasonEtco/upload-to-release@master"
-  args = "out/kbuild_windows_amd64.exe"
+  uses = "cedrickring/upload-to-release@master"
+  args = "kbuild_windows_amd64.exe application/octet-stream"
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build all binaries"]
-}
-
-action "docker://alpine" {
-  uses = "docker://alpine"
-  needs = ["Build all binaries"]
-  runs = "/bin/sh -c"
-  args = "ls"
+  env = {
+    WORKING_DIRECTORY = "out"
+  }
 }
