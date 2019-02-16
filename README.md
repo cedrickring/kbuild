@@ -83,15 +83,17 @@ e.g. `-t my.registry.com/tag` is guessed as `my.registry.com`. If no specific re
 
 ### Google Cloud Storage 
 
-If you want to use the Google Cloud Storage to store your build context, you just have to pass `gcs` as the first argument to kbuild,
+If you want to use the Google Cloud Storage to store your build context, you have to pass `gcs` as the first argument to kbuild
 and specify the `--bucket` to use.
 
 Example: `kbuild -t image:tag --bucket mybucket gcs`
 
+You might need to create [a service account key](https://console.cloud.google.com/apis/credentials/serviceaccountkey) and store the path to the `service-account.json` in the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. 
+
 ### How does kbuild work?
 
 In order to use the local context, the context needs to be tar-ed, copied to an Init Container, which shares an
-empty volume with the Kaniko container, and extracted in the empty volume. 
+empty volume with the Kaniko container, and extracted in the empty volume (only for local context).
 
 ### Limitations
 
