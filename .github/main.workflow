@@ -22,31 +22,22 @@ action "Build all binaries" {
 }
 
 action "Upload darwin release" {
-  uses = "cedrickring/upload-to-release@master"
-  args = "kbuild_darwin_amd64 application/octet-stream"
+  uses = "JasonEtco/upload-to-release@master"
+  args = "out/kbuild_darwin_amd64 application/octet-stream"
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build all binaries"]
-  env = {
-    WORKING_DIRECTORY = "out"
-  }
 }
 
 action "Upload linux release" {
-  uses = "cedrickring/upload-to-release@master"
-  args = "kbuild_linux_amd64 application/octet-stream"
+  uses = "JasonEtco/upload-to-release@master"
+  args = "out/kbuild_linux_amd64 application/octet-stream"
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build all binaries"]
-  env = {
-    WORKING_DIRECTORY = "out"
-  }
 }
 
 action "Upload windows release" {
-  uses = "cedrickring/upload-to-release@master"
-  args = "kbuild_windows_amd64.exe application/octet-stream"
+  uses = "JasonEtco/upload-to-release@master"
+  args = "out/kbuild_windows_amd64.exe application/octet-stream"
   secrets = ["GITHUB_TOKEN"]
   needs = ["Build all binaries"]
-  env = {
-    WORKING_DIRECTORY = "out"
-  }
 }
