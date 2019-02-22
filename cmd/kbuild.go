@@ -114,6 +114,12 @@ func run(_ *cobra.Command, args []string) {
 				Ctx:       ctx,
 			}
 		}
+	} else { //otherwise default to local build context
+		logrus.Infoln("Using local build context source")
+		ctxSource = source.Local{
+			Namespace: namespace,
+			Ctx:       ctx,
+		}
 	}
 
 	cachingInfo := "Run-Step caching is %s."
