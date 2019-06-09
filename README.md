@@ -1,8 +1,6 @@
-# ![Logo](logo/kbuild.png)
-
-Build container images inside a Kubernetes Cluster with your local build context.
-
-For more information see: [Kaniko](https://github.com/GoogleContainerTools/kaniko)
+<h1 align="center">kbuild</h1>
+<p align="center">Build container images inside a Kubernetes Cluster with your local build context.</p>
+<p align="center">For more information see: <a href="https://github.com/GoogleContainerTools/kaniko">Kaniko</a></p>
 
 ### Requirements
 1. `~/.docker/config.json` exists and authenticated to a registry
