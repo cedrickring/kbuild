@@ -4,7 +4,7 @@ workflow "kbuild CI" {
 }
 
 action "Run all checks" {
-  uses = "cedrickring/golang-action@1.1.0"
+  uses = "cedrickring/golang-action@1.3.0"
 }
 
 workflow "Upload all artifacts" {
@@ -17,7 +17,7 @@ workflow "Upload all artifacts" {
 }
 
 action "Build all binaries" {
-  uses = "cedrickring/golang-action@1.1.0"
+  uses = "cedrickring/golang-action@1.3.0"
   args = "make build-all"
 }
 
