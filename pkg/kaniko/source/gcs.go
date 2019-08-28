@@ -25,9 +25,9 @@ import (
 	"path/filepath"
 
 	"cloud.google.com/go/storage"
-	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/kubernetes"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

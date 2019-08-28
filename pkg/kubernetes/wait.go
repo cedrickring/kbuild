@@ -20,7 +20,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -36,9 +36,7 @@ func WaitForPodInitialized(ctx context.Context, clientset *kubernetes.Clientset,
 	defer cancelTimeout()
 
 	return wait.PollImmediateUntil(500*time.Millisecond, func() (done bool, err error) {
-		pod, err := pods.Get(podName, metav1.GetOptions{
-			IncludeUninitialized: true,
-		})
+		pod, err := pods.Get(podName, metav1.GetOptions{})
 
 		if err != nil {
 			logrus.Infof("Getting pod %s", podName)
@@ -60,9 +58,7 @@ func WaitForPodComplete(ctx context.Context, clientset *kubernetes.Clientset, na
 	pods := clientset.CoreV1().Pods(namespace)
 
 	return wait.PollImmediateUntil(500*time.Millisecond, func() (done bool, err error) {
-		pod, err := pods.Get(podName, metav1.GetOptions{
-			IncludeUninitialized: true,
-		})
+		pod, err := pods.Get(podName, metav1.GetOptions{})
 
 		if err != nil {
 			logrus.Infof("Getting pod %s", podName)

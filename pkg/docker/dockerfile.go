@@ -23,11 +23,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/moby/buildkit/frontend/dockerfile/command"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var urlRegex = regexp.MustCompile("^https?://(.*)")
