@@ -24,13 +24,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/cedrickring/kbuild/pkg/constants"
 	"github.com/cedrickring/kbuild/pkg/docker"
 	"github.com/cedrickring/kbuild/pkg/kaniko"
 	"github.com/cedrickring/kbuild/pkg/kaniko/source"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 )
@@ -65,9 +65,9 @@ func main() {
 	rootCmd.Flags().StringSliceVarP(&buildArgs, "build-arg", "", nil, "Optional build arguments (ARG)")
 	rootCmd.Flags().BoolVarP(&useCache, "cache", "c", false, "Enable RUN command caching")
 	rootCmd.Flags().StringVarP(&gcsBucket, "bucket", "b", "", "The bucket to upload the context to")
-	rootCmd.MarkFlagRequired("tag")
+	_ = rootCmd.MarkFlagRequired("tag")
 
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 }
 
 func run(_ *cobra.Command, args []string) {
