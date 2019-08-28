@@ -120,8 +120,10 @@ func (b Build) StartBuild(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
+		cancel() //stop streaming logs
 		logrus.Infoln("Build was cancelled")
 	case <-finishChan:
+		cancel() //stop streaming logs
 		podStatus, err := pods.Get(pod.Name, metav1.GetOptions{})
 		if err == nil && podStatus.Status.ContainerStatuses[0].State.Terminated.Reason == "Error" { //build container exited with a non 0 code
 			return ErrorBuildFailed
@@ -129,8 +131,6 @@ func (b Build) StartBuild(ctx context.Context) error {
 
 		logrus.Info("Build succeeded.")
 	}
-
-	cancel() //stop streaming logs
 
 	return nil
 }
